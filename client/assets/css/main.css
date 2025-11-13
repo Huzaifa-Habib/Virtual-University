@@ -1,0 +1,487 @@
+:root {
+  --bg-1: #071021;
+  --bg-2: #071824;
+  --accent1: #00ff9d;
+  --accent2: #00b3ff;
+  --danger1: #ff4b4b;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-2: rgba(255, 255, 255, 0.06);
+  --muted: #cbd5e1;
+}
+
+* {
+  box-sizing: border-box
+}
+
+html,
+body {
+  height: 100%
+}
+
+body {
+  margin: 0;
+  font-family: "Poppins", system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  background: radial-gradient(circle at 10% 10%, var(--bg-1), var(--bg-2));
+  color: #e6eef8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* container */
+.video-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+}
+
+/* header area (compact) */
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.session-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.session-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* main video area */
+.video-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px;
+  min-height: 0;
+}
+
+.video-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.video-card {
+  position: relative;
+  width: calc(50vw - 48px);
+  max-width: 900px;
+  height: calc(50vh + 40px);
+  max-height: 720px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(3, 10, 18, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .36s cubic-bezier(.2, .9, .2, 1), box-shadow .36s;
+  transform-origin: center;
+}
+
+.video-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* video element fills card */
+.video-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+/* small name badge */
+.badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(255, 255, 255, 0.02));
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #fff;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.role-pill {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+  font-weight: 600
+}
+/* Floating toolbar over video, like Zoom */
+.toolbar {
+  position: absolute; /* changed from fixed */
+  bottom: 16px; /* overlap video slightly */
+  left: 50%;
+  transform: translateX(-50%) translateY(50px); /* start hidden for animation */
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none; /* hide until animation triggers */
+  transition: transform 0.36s cubic-bezier(.2, .9, .2, 1), opacity 0.36s ease;
+}
+
+/* Show toolbar with animation */
+.toolbar.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+
+/* Pixel-perfect toolbar buttons */
+.tool-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* space between icon and text */
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 12px 20px; /* slightly bigger clickable area */
+  border-radius: 20px; /* rounder for modern look */
+  min-width: 70px; /* consistent button width */
+  transition: all 0.25s ease, transform 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+.tool-btn span.sr {
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: inline-block;
+}
+
+/* Icon + text alignment */
+.tool-btn svg, .tool-btn img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Hover and active states */
+.tool-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tool-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+}
+
+/* Primary button style */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  color: #021218;
+  padding: 12px 22px;
+  border-radius: 24px;
+  box-shadow: 0 6px 26px rgba(0, 179, 255, 0.25);
+  font-weight: 800;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 10px 32px rgba(0, 179, 255, 0.35);
+}
+
+/* Danger button style */
+.btn-danger {
+  background: linear-gradient(135deg, #ff6b6b, #ff3b3b);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 24px;
+  box-shadow: 0 6px 26px rgba(255, 75, 75, 0.25);
+}
+
+.btn-danger:hover {
+  box-shadow: 0 10px 32px rgba(255, 75, 75, 0.35);
+}
+
+/* Muted button style */
+.btn-muted {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  padding: 12px 18px;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.btn-muted:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Floating toolbar responsive tweaks */
+@media (max-width: 900px) {
+  .toolbar {
+    bottom: 14px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .tool-btn {
+    padding: 10px 16px;
+    font-size: 0.92rem;
+    min-width: 60px;
+    gap: 6px;
+  }
+}
+
+/* overlay while connecting or waiting */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.6), rgba(2, 6, 23, 0.6));
+  color: var(--accent1);
+  transition: opacity .28s ease, transform .28s ease;
+  opacity: 1;
+}
+
+.overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px)
+}
+
+.loader {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: 6px solid rgba(255, 255, 255, 0.06);
+  border-top-color: var(--accent1);
+  animation: spin 1s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* small status panel near top-right */
+.status-panel {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  background: var(--glass);
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: var(--muted);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  font-size: 0.9rem;
+  z-index: 50;
+}
+
+.timer {
+  font-weight: 800;
+  color: #fff;
+  margin-left: 8px
+}
+
+/* responsive */
+@media (max-width:900px) {
+  .video-card {
+    max-width: 95%;
+    height: 48vh
+  }
+
+  .video-stage {
+    padding: 8px
+  }
+
+  .toolbar {
+    bottom: 14px;
+    gap: 8px;
+    padding: 8px
+  }
+
+  .tool-btn {
+    padding: 8px 10px;
+    font-size: 0.9rem
+  }
+}
+
+
+/* Shared Auth Page Styling */
+body.auth-body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #2c3e50, #4ca1af);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: auto;
+}
+
+.auth-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 2.5rem 2rem;
+  color: white;
+  text-align: center;
+  animation: fadeIn 0.7s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-title {
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.auth-sub {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 1.5rem;
+}
+
+.role-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.role-tabs button {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-tabs button.active {
+  background: #00c6ff;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 198, 255, 0.4);
+}
+
+input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 0.8rem;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 15px rgba(0, 198, 255, 0.4);
+}
+
+.auth-msg {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.auth-link {
+  margin-top: 1.2rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.auth-link a {
+  color: #00c6ff;
+  text-decoration: none;
+}
+
+@media (max-height: 600px) {
+  body.auth-body {
+    align-items: flex-start;
+  }
+  .auth-container {
+    padding-top: 3rem;
+  }
+}
+
+
+

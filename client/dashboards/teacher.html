@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Teacher Dashboard | Virtual University</title>
+  <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+
+  <script src="../assets/js/dashboard-auth.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">VB</div>
+        <div class="brand-text">
+          <div class="brand-title">Virtual University</div>
+          <div class="brand-sub">Teacher Panel</div>
+        </div>
+      </div>
+
+      <nav class="nav" role="navigation" aria-label="Sidebar">
+        <button class="nav-item active" data-route="dashboard">
+          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" fill="currentColor"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-route="sessions">
+          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M21 8V7l-3 2-2-1-4 4-5-2-4 2V7l9-4 7 3 3 2z" fill="currentColor"/></svg>
+          <span>My Sessions</span>
+        </button>
+        <button class="nav-item" data-route="students">
+          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" fill="currentColor"/></svg>
+          <span>Students</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="profileBtn" class="sidebar-btn">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM4 20c0-3.31 4.69-6 8-6s8 2.69 8 6v1H4v-1z" fill="currentColor"/></svg>
+          <span id="teacherName">Teacher</span>
+        </button>
+        <button id="logoutBtn" class="sidebar-btn danger">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- DASHBOARD SECTION -->
+      <section id="dashboardSection" class="section">
+        <header class="main-header">
+          <div class="header-left">
+            <h1 class="page-title">Sessions</h1>
+            <p class="page-sub">Accept requests and start live sessions</p>
+          </div>
+          <div class="header-right">
+            <div class="search-wrap">
+              <input id="searchInput" class="search" placeholder="Search bookings, students, courses..." />
+              <button id="refreshBtn" class="icon-btn" title="Refresh">⟳</button>
+            </div>
+          </div>
+        </header>
+
+        <h2 class="section-title">Pending Requests</h2>
+        <div id="pendingGrid" class="grid"></div>
+
+        <h2 class="section-title">Accepted Sessions</h2>
+        <div id="acceptedGrid" class="grid"></div>
+
+        <div id="emptyState" class="empty hidden">
+          <div class="empty-ill">🎓</div>
+          <h3>No sessions yet</h3>
+          <p>Create a schedule or wait for student requests to appear here.</p>
+        </div>
+
+        <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- MY SESSIONS SECTION -->
+      <section id="sessionsSection" class="section hidden">
+        <h1 class="page-title">My Sessions</h1>
+        <p class="page-sub">View all upcoming sessions</p>
+        <div id="sessionsGrid" class="grid"></div>
+      </section>
+
+      <!-- STUDENTS SECTION -->
+      <section id="studentsSection" class="section hidden">
+        <h1 class="page-title">Students</h1>
+        <p class="page-sub">All students enrolled with you</p>
+        <div id="studentsGrid" class="grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../assets/js/teacher.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Live Session | Virtual University</title>
+
+    <!-- fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- styles -->
+    <link rel="stylesheet" href="../assets/css/main.css">
+
+    <!-- libs (load before video.js) -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+</head>
+
+<body>
+    <div class="video-container">
+
+        <div class="session-header">
+            <div>
+                <div class="session-title">Live Session</div>
+                <div class="session-meta">Booking ID: <span id="bookingIdLabel">—</span></div>
+            </div>
+            <div class="session-meta">Virtual University</div>
+        </div>
+
+        <div class="video-stage">
+            <div class="video-card local-card">
+                <video id="localVideo" autoplay playsinline muted></video>
+                <div class="badge">
+                    <span id="localName">You</span>
+                    <span class="role-pill" id="localRole">—</span>
+                </div>
+            </div>
+
+            <div class="video-card remote-card">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="badge">
+                    <span id="remoteName">Remote</span>
+                    <span class="role-pill" id="remoteRole">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar" role="toolbar" aria-label="Call controls">
+            <button id="muteBtn" class="tool-btn btn-muted" title="Mute/Unmute">🔇 <span class="sr">Mute</span></button>
+            <button id="cameraBtn" class="tool-btn btn-muted" title="Toggle Camera">📷 <span
+                    class="sr">Camera</span></button>
+            <button id="startBtn" class="tool-btn btn-primary" title="Start camera">🎥 Start</button>
+            <button id="joinBtn" class="tool-btn btn-primary" disabled title="Join room">🚀 Join</button>
+            <button id="leaveBtn" class="tool-btn btn-muted" disabled title="Leave call">🚪 Leave</button>
+            <button id="endCallBtn" class="tool-btn btn-danger" disabled title="End call">❌ End</button>
+            <button id="fullscreenBtn" class="tool-btn btn-primary" title="Fullscreen">🖥️ Fullscreen</button>
+            <button id="shareScreenBtn" class="tool-btn btn-primary" title="Share Screen">📤 Share Screen</button>
+
+
+        </div>
+
+        <div id="statusPanel" class="status-panel" aria-live="polite">
+            <span id="statusText">Not connected</span>
+            <span class="timer" id="timer">00:00</span>
+            <span id="tokenExpiry" style="margin-left:10px;color:var(--muted);font-weight:600"></span>
+        </div>
+
+        <div id="overlay" class="overlay hidden" aria-hidden="true">
+            <div class="loader" aria-hidden="true"></div>
+            <div id="overlayText">Connecting to live session…</div>
+        </div>
+
+    </div>
+
+    <!-- your video logic -->
+    <script src="../assets/js/video.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,160 @@
+<!-- File: client/dashboards/student.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Dashboard | Virtual University</title>
+
+  <!-- Global styles (single main + dashboard) -->
+
+  <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  <script src="../assets/js/dashboard-auth.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+
+
+  <!-- Socket.IO client + SimplePeer (CDN) -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+</head>
+
+<body>
+  <div class="app-shell student-app">
+
+    <!-- Sidebar (consistent with teacher) -->
+    <aside class="student-sidebar">
+      <div>
+        <div class="student-brand">
+          <div class="student-logo">V</div>
+          <div class="student-brand-text">Virtual University</div>
+        </div>
+
+        <nav class="student-nav" role="navigation" aria-label="Student navigation">
+          <a href="/dashboards/student.html" class="active">Dashboard</a>
+          <a href="/views/courses.html">Browse Courses</a>
+          <a href="/dashboards/bookings.html">My Bookings</a>
+          <a href="/views/chatbot.html">Chatbot</a>
+        </nav>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div id="studentNameSidebar" style="text-align:center;color:var(--muted);font-weight:700">Student</div>
+        <button id="logoutBtn" class="student-btn secondary">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="student-main">
+      <div class="student-header">
+        <div>
+          <h1 id="welcomeName">Welcome, Student</h1>
+          <p style="color:var(--muted);margin-top:6px">Your upcoming sessions and course materials</p>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="searchInput" class="student-search" placeholder="Search sessions, teachers or courses..." />
+          <button id="refreshBtn" class="student-btn primary">Refresh</button>
+        </div>
+      </div>
+
+      <div id="studentCalendarBox" style="
+        margin-top:20px;
+        background:rgba(255,255,255,0.05);
+        padding:20px;
+        border-radius:20px;
+        backdrop-filter:blur(10px);
+        box-shadow:0 0 20px rgba(0,0,0,0.2);
+     ">
+        <h3 style="margin-bottom:15px; text-align: center;">Your Bookings Calendar</h3>
+        <div id="studentCalendar" style="max-width:300px;"></div>
+      </div>
+
+
+      <section style="margin-bottom:20px">
+        <h2 style="margin:0 0 12px 0">Upcoming Sessions</h2>
+        <div id="upcomingGrid" class="student-cards"></div>
+      </section>
+
+      <section style="margin-bottom:20px">
+        <h2 style="margin:0 0 12px 0">Pending Requests</h2>
+        <div id="requestsGrid" class="student-cards"></div>
+      </section>
+
+      <section>
+        <h2 style="margin:0 0 12px 0">Request a Session</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+          <input id="teacherIdInput" placeholder="Teacher ID"
+            style="padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)" />
+          <input id="courseIdInput" placeholder="Course ID (optional)"
+            style="padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)" />
+          <input id="sessionTimeInput" type="datetime-local" placeholder="Select date & time">
+          <button id="requestBtn" class="student-btn primary">Request Session</button>
+        </div>
+      </section>
+
+      <div id="emptyState" class="empty hidden">
+        <div class="empty-ill">🎓</div>
+        <h3>No sessions yet</h3>
+        <p style="color:var(--muted)">Request a session from a teacher or wait for an accepted booking to appear here.
+        </p>
+      </div>
+
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <!-- Video Modal (hidden by default) -->
+  <div id="videoModal" class="video-modal hidden" aria-hidden="true">
+    <div class="video-modal-panel">
+      <header class="video-modal-header">
+        <div>
+          <strong id="modalTeacherName">Session</strong>
+          <div id="modalStatus" style="color:var(--muted);font-size:0.9rem">Connecting…</div>
+        </div>
+        <div>
+          <span class="timer" id="modalTimer">00:00</span>
+          <button id="closeModalBtn" class="student-btn secondary">Close</button>
+        </div>
+      </header>
+
+      <div class="video-modal-body">
+        <div class="video-stage-modal">
+          <div class="video-card" id="modalLocalCard">
+            <video id="modalLocalVideo" autoplay playsinline muted></video>
+            <div class="badge"><span id="localLabel">You</span></div>
+          </div>
+
+          <div class="video-card" id="modalRemoteCard">
+            <video id="modalRemoteVideo" autoplay playsinline></video>
+            <div class="badge"><span id="remoteLabel">Teacher</span></div>
+          </div>
+        </div>
+
+        <aside class="chat-panel">
+          <div class="chat-header">Live Chat</div>
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-input">
+            <input id="chatInput" placeholder="Write a message..." />
+            <button id="chatSendBtn" class="student-btn primary">Send</button>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="video-modal-footer">
+        <div class="toolbar">
+          <button id="muteBtn" class="tool-btn">🔇 Mute</button>
+          <button id="cameraBtn" class="tool-btn">📷 Camera</button>
+          <button id="endBtn" class="tool-btn btn-danger">End Call</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../assets/js/student.js" type="module"></script>
+</body>
+
+</html>
