@@ -14,6 +14,10 @@ import teacherRoutes from "./routes/teacherRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import videoRoutes from "./routes/videoRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
+import courseRoutes from './routes/courseRoutes.js';
+import enrollmentRoutes from './routes/enrollmentRoutes.js';
+
+
 
 
 dotenv.config();
@@ -32,6 +36,10 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/video", videoRoutes);
 app.use("/api/students", protect, studentRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+
+
 
 // Default route
 app.get("/", (req, res) => res.send("Virtual University API running..."));

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gradient-to-br from-[#0B0E1A] via-[#111428] to-[#0B0E1A] text-gray-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses | Virtual University</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        violetGlow: '#7C3AED',
+                        neonBlue: '#00D4FF',
+                        glass: 'rgba(255,255,255,0.05)',
+                    },
+                    animation: {
+                        fadeIn: 'fadeIn 0.5s ease-out',
+                        slideUp: 'slideUp 0.5s ease-out',
+                        pulseGlow: 'pulseGlow 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
+                        pulseGlow: {
+                            '0%,100%': { boxShadow: '0 0 0 rgba(124,58,237,0)' },
+                            '50%': { boxShadow: '0 0 18px rgba(124,58,237,0.6)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+
+<body class="h-full flex flex-col">
+
+    <!-- Header -->
+    <header
+        class="p-6 bg-glass backdrop-blur-md border-b border-white/10 flex flex-col sm:flex-row justify-between items-center animate-fade">
+        <h1
+            class="text-3xl font-bold bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent mb-4 sm:mb-0">
+            All Courses
+        </h1>
+        <input id="searchInput" type="text" placeholder="Search courses..."
+            class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow w-full sm:w-64">
+    </header>
+
+    <!-- Courses Grid -->
+    <main class="p-6 flex-1 overflow-y-auto">
+        <div id="coursesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Course cards will be injected here -->
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-violetGlow text-white px-4 py-3 rounded-xl shadow-lg"></div>
+
+    <!-- JS -->
+    <script type="module">
+        const serverUrl = 'http://localhost:5000';
+        const coursesGrid = document.getElementById('coursesGrid');
+        const searchInput = document.getElementById('searchInput');
+        const toastEl = document.getElementById('toast');
+
+        function toast(msg, time = 3000) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove('hidden');
+            setTimeout(() => toastEl.classList.add('hidden'), time);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str).replace(/[&<>"'`=\/]/g, s =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;' }[s])
+            );
+        }
+
+        function renderCourses(list) {
+            const q = searchInput.value.toLowerCase().trim();
+            const filtered = list.filter(c =>
+                `${c.title} ${c.description} ${c.teacher_name || ''}`.toLowerCase().includes(q)
+            );
+
+            coursesGrid.innerHTML = filtered.length ? filtered.map(c => `
+    <div class="bg-glass p-5 rounded-2xl border border-white/10 backdrop-blur-md shadow-lg hover:shadow-neonBlue transition transform hover:-translate-y-2 animate-slideUp">
+      <h2 class="text-xl font-semibold mb-2">${escapeHtml(c.title)}</h2>
+      <p class="text-gray-400 text-sm mb-1">${escapeHtml(c.description)}</p>
+      <p class="text-gray-500 text-xs mb-3">By: ${escapeHtml(c.teacher_name || 'Unknown')}</p>
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-gray-500">${c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}</span>
+       <button
+  class="bg-gradient-to-r from-violetGlow to-neonBlue px-3 py-1 rounded-lg text-sm font-semibold hover:opacity-90 transition"
+  onclick="subscribeCourse(${c.id})">
+  Subscribe
+</button>
+
+
+      </div>
+    </div>
+  `).join('') : `<p class="text-gray-400 col-span-full text-center">No courses found.</p>`;
+        }
+
+
+        async function fetchCourses() {
+            try {
+                const res = await fetch(`${serverUrl}/api/courses`);
+                if (!res.ok) {
+                    toast(`Failed to fetch courses: ${res.status}`);
+                    return;
+                }
+                const data = await res.json();
+                renderCourses(data);
+            } catch (err) {
+                console.error(err);
+                toast("Network error while fetching courses.");
+            }
+        }
+
+        window.enroll = function (courseId) {
+            toast(`Enroll clicked for course ID: ${courseId}`);
+            // TODO: implement actual enrollment API call
+        }
+
+        searchInput.addEventListener('input', fetchCourses);
+
+        fetchCourses();
+
+
+        window.subscribeCourse = function(courseId) {
+  window.location.href = `subscription.html?courseId=${courseId}`;
+}
+
+    </script>
+</body>
+
+</html>

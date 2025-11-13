@@ -1,97 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gradient-to-br from-[#0B0E1A] via-[#111428] to-[#0B0E1A] text-gray-100">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Dashboard | Virtual University</title>
-  <link rel="stylesheet" href="../assets/css/dashboard.css" />
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
-
-  <script src="../assets/js/dashboard-auth.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violetGlow: '#7C3AED',
+            neonBlue: '#00D4FF',
+            glass: 'rgba(255,255,255,0.05)',
+          },
+          animation: {
+            fade: 'fadeIn 0.5s ease-out',
+            slide: 'slideUp 0.5s ease-out',
+            pulseGlow: 'pulseGlow 3s infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+            slideUp: { '0%': { transform: 'translateY(20px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
+            pulseGlow: {
+              '0%,100%': { boxShadow: '0 0 0 rgba(124,58,237,0)' },
+              '50%': { boxShadow: '0 0 18px rgba(124,58,237,0.6)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Main navigation">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">VB</div>
-        <div class="brand-text">
-          <div class="brand-title">Virtual University</div>
-          <div class="brand-sub">Teacher Panel</div>
-        </div>
-      </div>
 
-      <nav class="nav" role="navigation" aria-label="Sidebar">
-        <button class="nav-item active" data-route="dashboard">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" fill="currentColor"/></svg>
-          <span>Dashboard</span>
-        </button>
-        <button class="nav-item" data-route="sessions">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M21 8V7l-3 2-2-1-4 4-5-2-4 2V7l9-4 7 3 3 2z" fill="currentColor"/></svg>
-          <span>My Sessions</span>
-        </button>
-        <button class="nav-item" data-route="students">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-10 1.67-10 5v3h20v-3c0-3.33-6.69-5-10-5z" fill="currentColor"/></svg>
-          <span>Students</span>
-        </button>
+<body class="h-full flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-64 bg-glass backdrop-blur-md border-r border-white/10 flex flex-col justify-between p-4 fixed h-full transform -translate-x-full sm:translate-x-0 transition-transform z-50">
+    <div>
+      <h1 class="text-2xl font-bold mb-8 bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent">Virtual University</h1>
+      <nav class="space-y-3">
+        <button class="block w-full text-left px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition" data-section="dashboardSection">Dashboard</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition" data-section="sessionsSection">My Sessions</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition" data-section="studentsSection">Students</button>
       </nav>
+    </div>
+    <div>
+      <p id="teacherNameSidebar" class="text-sm text-gray-400 mb-1">Teacher</p>
+      <p class="text-xs text-emerald-400">Active now</p>
+      <button id="logoutBtn" class="mt-3 w-full bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg text-sm font-semibold">Logout</button>
+    </div>
+  </aside>
 
-      <div class="sidebar-footer">
-        <button id="profileBtn" class="sidebar-btn">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM4 20c0-3.31 4.69-6 8-6s8 2.69 8 6v1H4v-1z" fill="currentColor"/></svg>
-          <span id="teacherName">Teacher</span>
-        </button>
-        <button id="logoutBtn" class="sidebar-btn danger">Logout</button>
-      </div>
-    </aside>
+  <!-- Mobile sidebar toggle -->
+  <button id="mobileSidebarBtn" class="sm:hidden fixed top-4 left-4 z-50 bg-violetGlow/80 p-2 rounded-lg text-white">☰</button>
 
-    <main class="main">
-      <!-- DASHBOARD SECTION -->
-      <section id="dashboardSection" class="section">
-        <header class="main-header">
-          <div class="header-left">
-            <h1 class="page-title">Sessions</h1>
-            <p class="page-sub">Accept requests and start live sessions</p>
-          </div>
-          <div class="header-right">
-            <div class="search-wrap">
-              <input id="searchInput" class="search" placeholder="Search bookings, students, courses..." />
-              <button id="refreshBtn" class="icon-btn" title="Refresh">⟳</button>
-            </div>
-          </div>
-        </header>
-
-        <h2 class="section-title">Pending Requests</h2>
-        <div id="pendingGrid" class="grid"></div>
-
-        <h2 class="section-title">Accepted Sessions</h2>
-        <div id="acceptedGrid" class="grid"></div>
-
-        <div id="emptyState" class="empty hidden">
-          <div class="empty-ill">🎓</div>
-          <h3>No sessions yet</h3>
-          <p>Create a schedule or wait for student requests to appear here.</p>
+  <!-- Main Content -->
+  <main class="flex-1 p-6 sm:ml-64 overflow-y-auto">
+    <!-- Dashboard Section -->
+    <section id="dashboardSection" class="animate-slide">
+      <header class="flex flex-wrap items-center justify-between mb-6">
+        <div>
+          <h2 class="text-3xl font-semibold">Dashboard</h2>
+          <p class="text-gray-400 text-sm">Accept requests and start live sessions</p>
         </div>
+        <div class="flex items-center gap-3">
+          <input id="searchInput" type="text" placeholder="Search bookings, students, courses..." class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm">
+          <button id="refreshBtn" class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
+        </div>
+      </header>
 
-        <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-      </section>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
+          <div id="pendingGrid" class="space-y-4"></div>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4">Accepted Sessions</h3>
+          <div id="acceptedGrid" class="space-y-4"></div>
+        </div>
+      </div>
 
-      <!-- MY SESSIONS SECTION -->
-      <section id="sessionsSection" class="section hidden">
-        <h1 class="page-title">My Sessions</h1>
-        <p class="page-sub">View all upcoming sessions</p>
-        <div id="sessionsGrid" class="grid"></div>
-      </section>
+      <div id="emptyState" class="empty hidden text-center mt-10">
+        <div class="text-6xl">🎓</div>
+        <h3 class="text-xl font-semibold mt-4">No sessions yet</h3>
+        <p class="text-gray-400">Create a schedule or wait for student requests to appear here.</p>
+      </div>
+    </section>
 
-      <!-- STUDENTS SECTION -->
-      <section id="studentsSection" class="section hidden">
-        <h1 class="page-title">Students</h1>
-        <p class="page-sub">All students enrolled with you</p>
-        <div id="studentsGrid" class="grid"></div>
-      </section>
-    </main>
-  </div>
+    <!-- My Sessions Section -->
+    <section id="sessionsSection" class="hidden animate-slide mt-6">
+      <h2 class="text-2xl font-semibold mb-4">My Sessions</h2>
+      <div id="sessionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
 
-  <script src="../assets/js/teacher.js" type="module"></script>
+    <!-- Students Section -->
+    <section id="studentsSection" class="hidden animate-slide mt-6">
+      <h2 class="text-2xl font-semibold mb-4">Students</h2>
+      <div id="studentsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-5 right-5 bg-violetGlow text-white px-4 py-3 rounded-xl shadow-lg"></div>
+
+  <script type="module" src="../assets/js/teacher.js"></script>
+
+  <script>
+    // Mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const mobileBtn = document.getElementById('mobileSidebarBtn');
+    mobileBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+
+    // Section navigation
+    document.querySelectorAll('aside nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+        const sec = document.getElementById(btn.dataset.section);
+        sec.classList.remove('hidden');
+      });
+    });
+  </script>
 </body>
 </html>

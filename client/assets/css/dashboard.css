@@ -1,478 +1,225 @@
-/* ============================
-   Teacher + Student Dashboard
-   Modern Responsive Dashboard
-   ============================ */
+/* ===============================================
+===  Student Dashboard Custom Styles === 
+=================================================*/
 
-/* ---------- Root Variables ---------- */
-:root {
-    --bg: #f4f7fb;
-    --card: #ffffff;
-    --muted: #6b7280;
-    --accent: #5b6df6;
-    --accent-2: #00c1ff;
-    --accent1: #5b6df6; /* for student */
-    --accent2: #00c1ff; /* for student */
-    --danger: #ff5b5b;
-    --glass: rgba(255, 255, 255, 0.7);
-    --glass-2: rgba(255, 255, 255, 0.15);
-    --shadow: 0 8px 30px rgba(14, 22, 38, 0.08);
-    --shadow-dark: 0 10px 30px rgba(0,0,0,0.6);
-    --radius: 14px;
-    --gap: 18px;
-    --max-width: 1200px;
-    --container-padding: 22px;
-    --transition: all 0.22s ease;
-}
 
-/* ---------- Reset ---------- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-html, body {
-    height: 100%;
-    scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background: linear-gradient(180deg, #e9f0ff 0%, #f7fbff 100%);
-    color: #0f172a;
-    overflow-x: hidden;
-}
-
-/* ---------- App Shell ---------- */
-.app-shell, .student-app {
-    display: flex;
-    flex-direction: row;
-    min-height: 100vh;
-    gap: var(--gap);
-    align-items: stretch;
-    transition: var(--transition);
-}
-
-/* ---------- Sidebar ---------- */
-.sidebar, .student-sidebar {
-    flex-shrink: 0;
-    width: 260px;
-    padding: 28px 20px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.88));
-    border-right: 1px solid rgba(16,24,40,0.04);
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: var(--transition);
-}
-
-.student-sidebar {
-    background: var(--glass);
-    border-right: 1px solid rgba(255,255,255,0.05);
-    backdrop-filter: blur(8px);
-}
-
-.brand, .student-brand {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
-.logo, .student-logo {
-    width: 46px;
-    height: 46px;
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    color: #fff;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 6px 18px rgba(91,109,246,0.18);
-    transition: var(--transition);
-}
-
-.student-logo {
-    background: linear-gradient(135deg, var(--accent1), var(--accent2));
-    color: #021218;
-}
-
-.brand-title, .student-brand-text {
-    font-weight: 700;
-    font-size: 18px;
-}
-
-.brand-sub {
-    font-size: 12px;
-    color: var(--muted);
-}
-
-.nav, .student-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 6px;
-}
-
-.nav-item, .student-nav a {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: transparent;
-    border: none;
-    color: #0f172a;
-    text-decoration: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: var(--transition);
-}
-
-.nav-item:hover, .student-nav a:hover, .student-nav a.active {
-    transform: translateX(6px);
-    background: linear-gradient(90deg, rgba(91,109,246,0.06), rgba(0,193,255,0.04));
-    color: #021218;
-}
-
-.nav-item .icon {
-    width: 18px;
-    height: 18px;
-    opacity: 0.9;
-}
-
-.sidebar-footer {
-    display: flex;
-    gap: 10px;
-    flex-direction: column;
-    align-items: center;
-}
-
-.sidebar-btn, .student-btn {
-    width: 100%;
-    padding: 10px;
-    border-radius: var(--radius);
-    border: none;
-    cursor: pointer;
-    font-weight: 700;
-    transition: var(--transition);
-}
-
-.sidebar-btn.danger, .btn-danger {
-    background: linear-gradient(90deg, #ff6b6b, #ff3b3b);
-    color: #fff;
-}
-
-/* ---------- Main Content ---------- */
-.main, .student-main {
-    flex: 1;
-    padding: var(--container-padding);
-    max-width: var(--max-width);
-    margin: 0 auto;
-    overflow: auto;
-    transition: var(--transition);
-}
-
-/* ---------- Header ---------- */
-.main-header, .student-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 18px;
-}
-
-.page-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #0f172a;
-}
-
-.student-header .page-title {
-    font-size: 18px; /* smaller for student dashboard */
-    font-weight: 600;
-}
-
-.page-sub {
-    color: var(--muted);
-    font-size: 14px;
-}
-
-/* ---------- Search ---------- */
-.search-wrap {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.search, .student-search {
-    padding: 10px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(15,23,42,0.06);
-    min-width: 220px;
-    transition: var(--transition);
-}
-
-.student-search {
-    background: var(--glass-2);
-    color: var(--muted);
-    min-width: 200px;
-}
-
-/* ---------- Sections & Grid ---------- */
-.section {
-    margin-top: 18px;
-}
-
-.section-title {
-    margin-bottom: 12px;
-    color: #0f172a;
-    font-size: 16px;
-}
-
-.grid, .student-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 18px;
-}
-
-/* ---------- Card ---------- */
-.card, .student-card, .video-card {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 18px;
-    border: 1px solid rgba(15,23,42,0.03);
-    box-shadow: var(--shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover, .student-card:hover, .video-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 50px rgba(12,20,40,0.12);
-}
-
-/* ---------- Status Pills ---------- */
-.pill {
-    display: inline-block;
-    padding: 6px 10px;
-    border-radius: 999px;
-    color: #fff;
-    font-weight: 700;
-    font-size: 12px;
-}
-
-.pend { background: #f59e0b; }
-.acc { background: #10b981; }
-.done { background: #3b82f6; }
-
-/* ---------- Buttons ---------- */
-.btn, .student-btn {
-    border: none;
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-weight: 700;
-    transition: var(--transition);
-}
-
-.btn.primary, .student-btn.primary {
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: #fff;
-}
-
-.btn.secondary, .student-btn.secondary {
-    background: var(--glass-2);
-    color: var(--muted);
-}
-
-/* ---------- Toast ---------- */
-.toast {
-    position: fixed;
-    right: 20px;
-    bottom: 24px;
-    padding: 12px 18px;
-    background: #0f172a;
-    color: #fff;
-    border-radius: var(--radius);
-    box-shadow: 0 8px 30px rgba(2,6,23,0.4);
-    opacity: 0;
-    transform: translateY(20px);
-    animation: toastIn 0.35s forwards;
-}
-
-@keyframes toastIn {
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---------- Video Modal ---------- */
-.video-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(2,6,23,0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 120;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-10px);
-    transition: var(--transition);
-}
-
-.video-modal.show {
-    opacity: 1;
-    pointer-events: all;
-    transform: translateY(0);
-}
-
-.video-modal-panel {
-    width: 92%;
-    max-width: 1200px;
-    height: 84vh;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius: var(--radius);
-    border: 1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 30px 80px rgba(0,0,0,0.75);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: var(--transition);
-}
-
-/* ---------- Chat Panel ---------- */
-.chat-panel {
-    width: 320px;
-    background: rgba(0,0,0,0.25);
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.03);
-    transition: var(--transition);
-}
-/* Calendar Wrapper */
-
-#studentCalendarBox {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-#studentCalendar {
-    display: flex;
-  padding: 20px;
-  border-radius: 14px;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
-  transition: 0.3s ease-in-out;
-  margin-left: auto;
-  margin-right: auto;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-
-}
-
-/* Month + year text */
-.flatpickr-months .flatpickr-month {
-  font-size: 18px;
+.booked-highlight {
+  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+  color: red !important;
+  border-radius: 6px;
   font-weight: 600;
-  letter-spacing: 1px;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+#studentCalendarWrapper .flatpickr-calendar.inline {
+  position: relative !important;  /* instead of absolute */
+  width: 100% !important;         /* fill wrapper */
+  max-width: 100% !important;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+#studentCalendarWrapper .flatpickr-months,
+#studentCalendarWrapper .flatpickr-weekdays,
+#studentCalendarWrapper .flatpickr-days {
+  width: 100% !important;
+}
+
+#studentCalendar .flatpickr-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 days evenly */
+}
+
+
+/* === Status pills === */
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.status-pill.accepted {
+  background: linear-gradient(90deg, #38bdf8, #6366f1);
+  color: white;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.4);
+}
+
+.status-pill.pending {
+  background: linear-gradient(90deg, #facc15, #f87171);
+  color: white;
+  box-shadow: 0 2px 6px rgba(250, 204, 21, 0.4);
+}
+
+.status-pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(56, 189, 248, 0.6);
+}
+
+/* === Buttons === */
+.student-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* Primary button with gradient & hover */
+.student-btn.primary {
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  color: white;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+}
+
+.student-btn.primary:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.6);
+}
+
+/* Secondary button style */
+.student-btn.secondary {
+  background: #ffffff10;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.student-btn.secondary:hover {
+  background: rgba(255,255,255,0.15);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(255,255,255,0.2);
+}
+
+/* Small animation on all buttons */
+.animate-btn {
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+}
+
+.animate-btn:active {
+  transform: scale(0.95);
+}
+
+/* Make "Join Live Session" button full width */
+.student-btn.w-full {
+  width: 100%;
+  text-align: center;
+}
+
+/* Add some spacing between rows */
+.student-card .flex + div {
+  margin-top: 0.5rem;
+}
+
+/* ===============================================
+===  Teacher Dashboard Custom Styles === 
+=================================================*/
+
+
+
+
+
+/* Card container */
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* Pills */
+.pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
-/* Weekday names */
-.flatpickr-weekday {
-  font-size: 13px;
+.pill.pend {
+  background: rgba(124, 58, 237, 0.2);
+  color: #7C3AED;
 }
 
-/* Normal days */
-.flatpickr-day {
-  background: #111;
-  color: #d2d2d2;
-  border-radius: 8px;
-  margin: 2px;
-  transition: 0.2s ease-in-out;
+.pill.acc {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00D4FF;
 }
 
-/* Hover effect */
-.flatpickr-day:hover {
-  background: #333;
-  color: black;
-  transform: scale(1.06);
-}
-
-/* Selected date */
-.flatpickr-day.selected {
-  background: #4b53ff !important;
-  color: #fff !important;
-  box-shadow: 0 0 10px rgba(75, 83, 255, 0.8);
-  transform: scale(1.08);
-}
-
-/* Disabled dates (your booked days) */
-.flatpickr-day.flatpickr-disabled {
-  background: #550000 !important;
-  color: #ff6b6b !important;
+/* Buttons */
+.btn {
+  background: linear-gradient(90deg, #7C3AED, #00D4FF);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
   border: none;
-  cursor: not-allowed;
-  opacity: 1;
-  font-weight: 700;
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
-  transform: scale(1.03);
+  transition: opacity 0.2s;
 }
 
-/* Navigation arrows */
-.flatpickr-prev-month svg,
-.flatpickr-next-month svg {
-  fill: #fff !important;
-  transition: 0.2s ease;
+.btn:hover {
+  opacity: 0.9;
 }
 
-.flatpickr-prev-month:hover svg,
-.flatpickr-next-month:hover svg {
-  fill: #4b53ff !important;
-  transform: scale(1.2);
+.btn.secondary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #ccc;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 1024px) {
-    .sidebar, .student-sidebar {
-        width: 100%;
-        flex-direction: row;
-        padding: 12px;
-    }
-    .app-shell, .student-app {
-        flex-direction: column;
-    }
-    .main, .student-main {
-        padding: 16px;
-    }
-    .search, .student-search {
-        min-width: 140px;
-    }
-    .chat-panel {
-        display: none;
-    }
-    .video-card {
-        min-width: 45%;
-        height: 50vh;
-    }
+/* Flex actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
 }
 
-@media (max-width: 600px) {
-    .grid, .student-cards {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .video-modal-panel {
-        height: 70vh;
-    }
-    .page-title, .student-header .page-title {
-        font-size: 16px;
-    }
+/* Muted text */
+.muted {
+  color: #aaa;
+  font-size: 0.8rem;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}
+
+.empty h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.empty p {
+  font-size: 0.9rem;
+}
+
+/* Responsive grids */
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
 }

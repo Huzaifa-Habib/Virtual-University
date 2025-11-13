@@ -6,7 +6,7 @@ const pendingGrid = document.getElementById("pendingGrid");
 const acceptedGrid = document.getElementById("acceptedGrid");
 const emptyState = document.getElementById("emptyState");
 const toastEl = document.getElementById("toast");
-const teacherNameEl = document.getElementById("teacherName");
+const teacherNameEl = document.getElementById("teacherNameSidebar");
 const refreshBtn = document.getElementById("refreshBtn");
 const searchInput = document.getElementById("searchInput");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -29,17 +29,16 @@ navItems.forEach(btn => {
     navItems.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
-    const route = btn.dataset.route;
     dashboardSection.classList.add("hidden");
     sessionsSection.classList.add("hidden");
     studentsSection.classList.add("hidden");
 
-    if(route === "dashboard") dashboardSection.classList.remove("hidden");
-    else if(route === "sessions") {
+    if(btn.dataset.route === "dashboard") dashboardSection.classList.remove("hidden");
+    else if(btn.dataset.route === "sessions") {
       sessionsSection.classList.remove("hidden");
       fetchSessions();
     }
-    else if(route === "students") {
+    else if(btn.dataset.route === "students") {
       studentsSection.classList.remove("hidden");
       fetchStudents();
     }
@@ -60,27 +59,21 @@ function escapeHtml(str){
   );
 }
 
+let bookingsCache = [];
 function showEmptyIfNeeded(){
   emptyState.classList.toggle("hidden", bookingsCache.length > 0);
 }
 
-let bookingsCache = [];
-
-/* FETCH BOOKINGS */
+/* Fetch Bookings */
 async function fetchBookings(){
   try {
     pendingGrid.innerHTML = "<div class='card'>Loading…</div>";
     acceptedGrid.innerHTML = "<div class='card'>Loading…</div>";
 
-    const res = await fetch(`${serverUrl}/api/bookings`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
+    const res = await fetch(`${serverUrl}/api/bookings`, { headers: { Authorization: `Bearer ${token}` } });
     if(!res.ok){
-      const txt = await res.text();
       pendingGrid.innerHTML = `<div class="card">Failed to load bookings: ${res.status}</div>`;
       acceptedGrid.innerHTML = "";
-      console.error("fetchBookings failed", res.status, txt);
       return;
     }
 
@@ -145,7 +138,6 @@ function cardAccepted(b){
 }
 
 /* Accept booking */
-
 window.acceptBooking = async function(id){
   if(!confirm("Accept this booking and generate the video link?")) return;
   try {
@@ -153,52 +145,17 @@ window.acceptBooking = async function(id){
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
     });
-    if(!res.ok){
-      const txt = await res.text();
-      toast(`Accept failed: ${res.status}`);
-      console.error("acceptBooking failed", txt);
-      return;
-    }
-
-    // After accepting booking, create video session
-    toast("Booking accepted. Creating video room…");
-
-    const videoRes = await fetch(`${serverUrl}/api/video/${id}/create`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!videoRes.ok) {
-      const txt = await videoRes.text();
-      console.error("Video session creation failed", txt);
-      toast("Video session creation failed.");
-    } else {
-      const vData = await videoRes.json();
-      console.log("Video session created:", vData);
-      toast("Video room created successfully!");
-    }
-
+    if(!res.ok) return toast(`Accept failed: ${res.status}`);
+    toast("Booking accepted. Video room created!");
     fetchBookings();
-  } catch(err){
-    console.error(err);
-    toast("Network error during accept.");
-  }
+  } catch(err){ console.error(err); toast("Network error during accept."); }
 };
-
 
 /* Start session */
-window.startSession = function(id){
-  const url = `${location.origin}/views/video.html?bookingId=${id}`;
-  window.open(url, "_blank");
-};
+window.startSession = id => window.open(`${location.origin}/views/video.html?bookingId=${id}`, "_blank");
 
 /* View details */
-window.viewDetails = function(id){
-  window.location.href = `${location.origin}/views/booking.html?id=${id}`;
-};
+window.viewDetails = id => window.location.href = `${location.origin}/views/booking.html?id=${id}`;
 
 /* Logout */
 function logout(){
@@ -206,147 +163,42 @@ function logout(){
   window.location.href = '/';
 }
 
-/* --- FETCH SESSIONS --- */
+/* Fetch My Sessions */
 async function fetchSessions(){
   const grid = document.getElementById("sessionsGrid");
   grid.innerHTML = "<div class='card'>Loading…</div>";
-  try {
-    const res = await fetch(`${serverUrl}/api/bookings`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if(!res.ok) {
-      grid.innerHTML = `<div class="card">Failed to load sessions: ${res.status}</div>`;
-      return;
-    }
+  try{
+    const res = await fetch(`${serverUrl}/api/bookings`, { headers:{ Authorization: `Bearer ${token}` } });
+    if(!res.ok){ grid.innerHTML = `<div class="card">Failed to load sessions: ${res.status}</div>`; return; }
     const data = await res.json();
-    if(!Array.isArray(data) || !data.length) grid.innerHTML = `<div class="card">No sessions found.</div>`;
-    else grid.innerHTML = data.map(b => `
+    grid.innerHTML = data.length ? data.map(b => `
       <div class="card">
         <h3>${escapeHtml(b.courseTitle)}</h3>
         <p>With <strong>${escapeHtml(b.studentName)}</strong></p>
         <p class="muted">Date: ${escapeHtml(b.date)} | Time: ${escapeHtml(b.time)}</p>
         <span class="pill">${escapeHtml(b.status)}</span>
       </div>
-    `).join("");
-  } catch(err){
-    console.error(err);
-    grid.innerHTML = `<div class="card">Network error</div>`;
-  }
+    `).join("") : `<div class="card">No sessions found.</div>`;
+  }catch(err){ console.error(err); grid.innerHTML = `<div class="card">Network error</div>`; }
 }
 
-/* --- FETCH STUDENTS --- */
+/* Fetch Students */
 async function fetchStudents(){
   const grid = document.getElementById("studentsGrid");
   grid.innerHTML = "<div class='card'>Loading…</div>";
-  try {
-    const res = await fetch(`${serverUrl}/api/students`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if(!res.ok){
-      grid.innerHTML = `<div class="card">Failed to load students: ${res.status}</div>`;
-      return;
-    }
+  try{
+    const res = await fetch(`${serverUrl}/api/students`, { headers:{ Authorization: `Bearer ${token}` } });
+    if(!res.ok){ grid.innerHTML = `<div class="card">Failed to load students: ${res.status}</div>`; return; }
     const data = await res.json();
-    if(!Array.isArray(data) || !data.length) grid.innerHTML = `<div class="card">No students found.</div>`;
-    else grid.innerHTML = data.map(s => `
+    grid.innerHTML = data.length ? data.map(s => `
       <div class="card">
         <h3>${escapeHtml(s.name)}</h3>
         <p>Email: ${escapeHtml(s.email)}</p>
         <p>Role: ${escapeHtml(s.role)}</p>
       </div>
-    `).join("");
-  } catch(err){
-    console.error(err);
-    grid.innerHTML = `<div class="card">Network error</div>`;
-  }
+    `).join("") : `<div class="card">No students found.</div>`;
+  }catch(err){ console.error(err); grid.innerHTML = `<div class="card">Network error</div>`; }
 }
-function formatLocalDatetimeForServer(dtLocalValue){
-  if(!dtLocalValue) return "";
-  const d = new Date(dtLocalValue);
-  const pad = n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-
-(async function initMiniCalendar(){
-  if(typeof FullCalendar === 'undefined') return console.warn('FullCalendar not loaded');
-  const calendarEl = document.getElementById('calendar');
-  if(!calendarEl) return;
-
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    height: 'auto',
-    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-    dayMaxEvents: 3,
-    eventDisplay: 'block',
-    events: [],
-    eventDidMount: function(info){
-      info.el.style.transition = 'transform .28s cubic-bezier(.2,.9,.2,1), opacity .28s';
-      info.el.style.opacity = '0';
-      requestAnimationFrame(()=> info.el.style.opacity = '1');
-    },
-    dateClick: function(info){
-      const input = document.getElementById('sessionTimeInput');
-      if(input) input.value = info.dateStr + 'T09:00';
-    },
-    eventClick: function(info){
-      const ev = info.event.extendedProps || {};
-      alert(`${info.event.title}\nTeacher: ${ev.teacherName||ev.teacher}\nTime: ${info.event.startStr}`);
-    }
-  });
-  calendar.render();
-
-  async function loadBookingsIntoCalendar(){
-    try{
-      const token = localStorage.getItem('token') || '';
-      const url = window.location.pathname.includes('/teacher') ? `${API_BASE||'http://localhost:5000'}/api/bookings` : `${API_BASE||'http://localhost:5000'}/api/bookings/student`;
-      const res = await fetch(url, { headers: { Authorization: token ? `Bearer ${token}` : '' } });
-      if(!res.ok) return console.warn('calendar load failed', res.status);
-      const data = await res.json();
-      const events = (Array.isArray(data) ? data : []).map(b=>{
-        const start = (b.time && b.time.indexOf('T')===-1) ? b.time.replace(' ','T') : (b.time || b.date || null);
-        return { id: b.id || `${b.id}_${b.room_id||''}`, title: b.courseTitle || (b.teacherName ? 'Session with '+b.teacherName : 'Session'), start, allDay:false, extendedProps:{ studentName: b.studentName, teacherName: b.teacherName, status: b.status } };
-      });
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
-      highlightDays();
-    }catch(e){ console.error('calendar load failed', e); }
-  }
-
-  function highlightDays(){
-    const dayCells = calendarEl.querySelectorAll('.fc-daygrid-day');
-    dayCells.forEach(cell => { cell.classList.remove('has-event'); cell.style.transform = ''; });
-    setTimeout(()=>{
-      calendar.getEvents().forEach(ev=>{
-        if(!ev.start) return;
-        const dateStr = ev.start.toISOString().slice(0,10);
-        const cell = calendarEl.querySelector(`[data-date="${dateStr}"]`);
-        if(cell){
-          cell.classList.add('has-event');
-          cell.style.transition = 'transform .36s cubic-bezier(.2,.9,.2,1)';
-          cell.style.transform = 'translateY(-6px)';
-          setTimeout(()=> cell.style.transform = '', 700);
-        }
-      });
-    },120);
-  }
-
-  await loadBookingsIntoCalendar();
-
-  // live updates via socket.io (optional)
-  if(typeof io !== 'undefined'){
-    try{
-      const token = localStorage.getItem('token') || '';
-      const s = io((API_BASE||'http://localhost:5000'), { auth:{ token }, transports:['websocket','polling'] });
-      s.on('connect', ()=> console.log('calendar socket connected'));
-      s.on('booking-created', loadBookingsIntoCalendar);
-      s.on('booking-updated', loadBookingsIntoCalendar);
-      s.on('booking-deleted', loadBookingsIntoCalendar);
-    }catch(e){ console.warn('calendar socket failed', e); }
-  }
-
-  window.reloadCalendar = loadBookingsIntoCalendar;
-})();
 
 /* Initial fetch */
 fetchBookings();

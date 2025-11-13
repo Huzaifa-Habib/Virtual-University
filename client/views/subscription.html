@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gradient-to-br from-[#0B0E1A] via-[#111428] to-[#0B0E1A] text-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscribe | Virtual University</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violetGlow: '#7C3AED',
+            neonBlue: '#00D4FF',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @keyframes fadeUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeUp { animation: fadeUp 0.6s ease forwards; }
+    .glass-card { 
+      background: rgba(255,255,255,0.05); 
+      backdrop-filter: blur(15px); 
+      border: 1px solid rgba(255,255,255,0.1); 
+    }
+    .glow-hover:hover { box-shadow: 0 0 20px rgba(124,58,237,0.6); }
+  </style>
+</head>
+<body class="h-full flex flex-col">
+
+  <!-- Header -->
+  <header class="p-6 flex flex-col md:flex-row justify-between items-center bg-glass backdrop-blur-md border-b border-white/10 mb-6 animate-fadeUp">
+    <h1 id="courseTitle" class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent text-center md:text-left">
+      Course Name
+    </h1>
+    <p class="text-gray-400 mt-2 md:mt-0 text-center md:text-left">Choose a subscription plan that fits your learning style</p>
+  </header>
+
+  <!-- Packages Grid -->
+  <main class="px-6 flex-1">
+    <div id="packagesGrid" class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <!-- Package cards will render here -->
+    </div>
+  </main>
+
+  <script type="module">
+    const serverUrl = 'http://localhost:5000';
+    const packagesGrid = document.getElementById('packagesGrid');
+    const urlParams = new URLSearchParams(window.location.search);
+    const courseId = urlParams.get('courseId');
+async function fetchCourseAndPackages() {
+  try {
+    // Fetch course info
+    const courseRes = await fetch(`${serverUrl}/api/courses/${courseId}`);
+    if (!courseRes.ok) throw new Error('Failed to fetch course');
+    const course = await courseRes.json();
+    document.getElementById('courseTitle').textContent = course.title;
+
+    // Fetch packages from DB
+    const pkgRes = await fetch(`${serverUrl}/api/courses/${courseId}/packages`);
+    if (!pkgRes.ok) throw new Error('Failed to fetch packages');
+    const packages = await pkgRes.json();
+
+    if (!packages.length) {
+      packagesGrid.innerHTML = `<p class="text-center text-gray-400 col-span-full mt-10">No subscription packages available.</p>`;
+      return;
+    }
+
+    // Render packages
+    packagesGrid.innerHTML = packages.map((pkg, i) => `
+      <div class="glass-card p-6 rounded-3xl shadow-lg flex flex-col justify-between transition-transform duration-300 hover:scale-105 glow-hover animate-fadeUp" style="animation-delay: ${i*0.1}s">
+        <h2 class="text-2xl font-bold mb-2 text-white">${pkg.name}</h2>
+        <ul class="text-gray-300 mb-4 list-disc list-inside space-y-1">
+          ${pkg.features.map(f => `<li>${f}</li>`).join('')}
+        </ul>
+        <p class="text-white text-2xl font-extrabold mb-4">$${pkg.price}</p>
+        <button class="select-btn bg-gradient-to-r from-violetGlow to-neonBlue px-5 py-3 rounded-xl font-semibold hover:opacity-90 transition text-white shadow-lg hover:shadow-neonBlue"
+          data-name="${pkg.name}" data-price="${pkg.price}">Select Plan</button>
+      </div>
+    `).join('');
+
+    // Attach click listeners **after rendering**
+    document.querySelectorAll('.select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tier = btn.dataset.name;
+        const price = btn.dataset.price;
+        localStorage.setItem('selectedCourse', JSON.stringify({ courseId, tier, price }));
+        window.location.href = 'checkout.html';
+      });
+    });
+
+  } catch(err) {
+    console.error(err);
+    packagesGrid.innerHTML = `<p class="text-center text-gray-400 col-span-full mt-10">Failed to load course or packages.</p>`;
+  }
+}
+
+fetchCourseAndPackages();
+
+  </script>
+</body>
+</html>

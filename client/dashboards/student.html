@@ -1,160 +1,175 @@
-<!-- File: client/dashboards/student.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gradient-to-br from-[#0B0E1A] via-[#111428] to-[#0B0E1A] text-gray-100">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Student Dashboard | Virtual University</title>
-
-  <!-- Global styles (single main + dashboard) -->
-
-  <link rel="stylesheet" href="../assets/css/dashboard.css" />
-  <script src="../assets/js/dashboard-auth.js"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-
-
-  <!-- Socket.IO client + SimplePeer (CDN) -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violetGlow: '#7C3AED',
+            neonBlue: '#00D4FF',
+            glass: 'rgba(255,255,255,0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
 </head>
 
-<body>
-  <div class="app-shell student-app">
+<body class="h-full flex flex-col md:flex-row overflow-x-hidden">
 
-    <!-- Sidebar (consistent with teacher) -->
-    <aside class="student-sidebar">
-      <div>
-        <div class="student-brand">
-          <div class="student-logo">V</div>
-          <div class="student-brand-text">Virtual University</div>
-        </div>
-
-        <nav class="student-nav" role="navigation" aria-label="Student navigation">
-          <a href="/dashboards/student.html" class="active">Dashboard</a>
-          <a href="/views/courses.html">Browse Courses</a>
-          <a href="/dashboards/bookings.html">My Bookings</a>
-          <a href="/views/chatbot.html">Chatbot</a>
-        </nav>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div id="studentNameSidebar" style="text-align:center;color:var(--muted);font-weight:700">Student</div>
-        <button id="logoutBtn" class="student-btn secondary">Logout</button>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="student-main">
-      <div class="student-header">
-        <div>
-          <h1 id="welcomeName">Welcome, Student</h1>
-          <p style="color:var(--muted);margin-top:6px">Your upcoming sessions and course materials</p>
-        </div>
-
-        <div style="display:flex;gap:10px;align-items:center">
-          <input id="searchInput" class="student-search" placeholder="Search sessions, teachers or courses..." />
-          <button id="refreshBtn" class="student-btn primary">Refresh</button>
-        </div>
-      </div>
-
-      <div id="studentCalendarBox" style="
-        margin-top:20px;
-        background:rgba(255,255,255,0.05);
-        padding:20px;
-        border-radius:20px;
-        backdrop-filter:blur(10px);
-        box-shadow:0 0 20px rgba(0,0,0,0.2);
-     ">
-        <h3 style="margin-bottom:15px; text-align: center;">Your Bookings Calendar</h3>
-        <div id="studentCalendar" style="max-width:300px;"></div>
-      </div>
-
-
-      <section style="margin-bottom:20px">
-        <h2 style="margin:0 0 12px 0">Upcoming Sessions</h2>
-        <div id="upcomingGrid" class="student-cards"></div>
-      </section>
-
-      <section style="margin-bottom:20px">
-        <h2 style="margin:0 0 12px 0">Pending Requests</h2>
-        <div id="requestsGrid" class="student-cards"></div>
-      </section>
-
-      <section>
-        <h2 style="margin:0 0 12px 0">Request a Session</h2>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
-          <input id="teacherIdInput" placeholder="Teacher ID"
-            style="padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)" />
-          <input id="courseIdInput" placeholder="Course ID (optional)"
-            style="padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)" />
-          <input id="sessionTimeInput" type="datetime-local" placeholder="Select date & time">
-          <button id="requestBtn" class="student-btn primary">Request Session</button>
-        </div>
-      </section>
-
-      <div id="emptyState" class="empty hidden">
-        <div class="empty-ill">🎓</div>
-        <h3>No sessions yet</h3>
-        <p style="color:var(--muted)">Request a session from a teacher or wait for an accepted booking to appear here.
-        </p>
-      </div>
-
-      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-    </main>
-  </div>
-
-  <!-- Video Modal (hidden by default) -->
-  <div id="videoModal" class="video-modal hidden" aria-hidden="true">
-    <div class="video-modal-panel">
-      <header class="video-modal-header">
-        <div>
-          <strong id="modalTeacherName">Session</strong>
-          <div id="modalStatus" style="color:var(--muted);font-size:0.9rem">Connecting…</div>
-        </div>
-        <div>
-          <span class="timer" id="modalTimer">00:00</span>
-          <button id="closeModalBtn" class="student-btn secondary">Close</button>
-        </div>
-      </header>
-
-      <div class="video-modal-body">
-        <div class="video-stage-modal">
-          <div class="video-card" id="modalLocalCard">
-            <video id="modalLocalVideo" autoplay playsinline muted></video>
-            <div class="badge"><span id="localLabel">You</span></div>
-          </div>
-
-          <div class="video-card" id="modalRemoteCard">
-            <video id="modalRemoteVideo" autoplay playsinline></video>
-            <div class="badge"><span id="remoteLabel">Teacher</span></div>
-          </div>
-        </div>
-
-        <aside class="chat-panel">
-          <div class="chat-header">Live Chat</div>
-          <div id="chatMessages" class="chat-messages"></div>
-          <div class="chat-input">
-            <input id="chatInput" placeholder="Write a message..." />
-            <button id="chatSendBtn" class="student-btn primary">Send</button>
-          </div>
-        </aside>
-      </div>
-
-      <footer class="video-modal-footer">
-        <div class="toolbar">
-          <button id="muteBtn" class="tool-btn">🔇 Mute</button>
-          <button id="cameraBtn" class="tool-btn">📷 Camera</button>
-          <button id="endBtn" class="tool-btn btn-danger">End Call</button>
-        </div>
-      </footer>
+  <!-- Sidebar -->
+  <aside id="sidebar"
+    class="fixed inset-y-0 left-0 z-30 w-64 bg-glass backdrop-blur-md border-r border-white/10 flex flex-col justify-between p-4 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+    <div>
+      <h1 class="text-2xl font-bold mb-8 bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent">
+        Virtual University</h1>
+      <nav class="space-y-3">
+        <a href="#" class="block px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition">Overview</a>
+        <a href="../views/courses.html" class="block px-3 py-2 rounded-xl hover:bg-white/5">Courses</a>
+        <a href="#" class="block px-3 py-2 rounded-xl hover:bg-white/5">Chatbot</a>
+      </nav>
     </div>
-  </div>
+    <div>
+      <p id="studentNameSidebar" class="text-sm text-gray-400 mb-1">Student</p>
+      <p class="text-xs text-emerald-400">Active now</p>
+      <button id="logoutBtn"
+        class="mt-3 w-full bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg text-sm font-semibold">Logout</button>
+    </div>
+  </aside>
 
-  <script src="../assets/js/student.js" type="module"></script>
+  <!-- Overlay for mobile sidebar -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 hidden z-20"></div>
+
+  <!-- Main -->
+  <main class="flex-1 p-4 md:p-8 md:ml-64 overflow-x-hidden">
+    <!-- Mobile Header -->
+    <div class="flex items-center justify-between md:hidden mb-4">
+      <button id="menuBtn" class="p-2 rounded bg-white/10 hover:bg-white/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <h2 class="text-xl font-semibold">Dashboard</h2>
+    </div>
+
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-3">
+      <div>
+        <h2 id="welcomeName" class="text-3xl font-semibold">Welcome, Student</h2>
+        <p class="text-gray-400 text-sm">Your upcoming sessions and course materials</p>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <input id="searchInput" type="text" placeholder="Search sessions, teachers or courses"
+          class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm w-full sm:w-64">
+        <button id="refreshBtn"
+          class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
+      </div>
+    </header>
+
+    <!-- Stats + Quick Actions -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+      <div class="col-span-1 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
+        <h3 class="text-lg font-semibold mb-4">Bookings Calendar</h3>
+        <div id="studentCalendarWrapper" class="w-full overflow-hidden">
+          <div id="studentCalendar"></div>
+        </div>
+      </div>
+      <div
+        class="col-span-1 xl:col-span-2 flex flex-col justify-between bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 text-center">
+          <div class="p-4 bg-white/5 rounded-xl">
+            <p class="text-gray-400 text-sm">Upcoming</p>
+            <p id="upcomingCount" class="text-2xl font-bold text-neonBlue">0</p>
+          </div>
+          <div class="p-4 bg-white/5 rounded-xl">
+            <p class="text-gray-400 text-sm">Pending</p>
+            <p id="pendingCount" class="text-2xl font-bold text-violetGlow">0</p>
+          </div>
+          <div class="p-4 bg-white/5 rounded-xl">
+            <p class="text-gray-400 text-sm">Messages</p>
+            <p id="messageCount" class="text-2xl font-bold text-emerald-400">0</p>
+          </div>
+        </div>
+        <div class="flex justify-between text-sm text-gray-400 mb-3">
+          <span>Quick Actions</span>
+        </div>
+        <div class="mt-auto flex">
+          <a href="#" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Browse
+            Teachers</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sessions -->
+    <section class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <h3 class="text-xl font-semibold mb-4">Upcoming Sessions</h3>
+        <div id="upcomingGrid" class="space-y-4 text-sm"></div>
+      </div>
+      <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
+        <div id="requestsGrid" class="space-y-4 text-sm"></div>
+      </div>
+    </section>
+
+    <!-- Request Form -->
+    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+      <h3 class="text-xl font-semibold mb-4">Request a Session</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <input id="teacherIdInput" type="text" placeholder="Teacher ID"
+          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+        <input id="courseIdInput" type="text" placeholder="Course ID (optional)"
+          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+        <input id="sessionTimeInput" type="text" placeholder="Select date & time"
+          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+        <button id="requestBtn"
+          class="w-full sm:w-auto bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg font-semibold hover:opacity-90">Request
+          Session</button>
+      </div>
+    </section>
+
+    <!-- Enrolled Courses Section -->
+    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+      <h3 class="text-xl font-semibold mb-4">My Enrolled Courses</h3>
+      <div id="enrolledCoursesGrid" class="space-y-4">
+        <!-- Enrolled courses will be dynamically rendered here -->
+      </div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-violetGlow text-white px-4 py-3 rounded-xl shadow-lg"></div>
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    const menuBtn = document.getElementById("menuBtn");
+
+    menuBtn?.addEventListener("click", () => {
+      sidebar.classList.toggle("-translate-x-full");
+      overlay.classList.toggle("hidden");
+    });
+
+    overlay?.addEventListener("click", () => {
+      sidebar.classList.add("-translate-x-full");
+      overlay.classList.add("hidden");
+    });
+  </script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script type="module" src="../assets/js/student.js"></script>
 </body>
 
 </html>

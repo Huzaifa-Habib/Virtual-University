@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gradient-to-br from-[#0B0E1A] via-[#111428] to-[#0B0E1A] text-gray-100">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout | Virtual University</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        violetGlow: '#7C3AED',
+        neonBlue: '#00D4FF',
+        neonShadow: '0 0 25px rgba(124,58,237,0.7)'
+      },
+      keyframes: {
+        fadeUp: {'0%': {opacity:'0', transform:'translateY(20px)'}, '100%': {opacity:'1', transform:'translateY(0)'}},
+        pulseGlow: {'0%,100%': {boxShadow:'0 0 15px rgba(124,58,237,0.6)'}, '50%': {boxShadow:'0 0 25px rgba(124,58,237,0.9)'}}
+      },
+      animation: {
+        fadeUp: 'fadeUp 0.6s ease forwards',
+        pulseGlow: 'pulseGlow 1.5s ease-in-out infinite'
+      }
+    }
+  }
+}
+</script>
+<style>
+.glass-card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.button-glow {
+  transition: all 0.3s ease;
+}
+.button-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(124,58,237,0.7);
+}
+.step-active { @apply text-white font-bold; }
+.step-inactive { @apply text-gray-500; }
+.package-card { transition: all 0.3s ease; }
+.package-card.recommended { border: 2px solid #7C3AED; transform: scale(1.05); animation: pulseGlow 1.5s infinite; }
+</style>
+</head>
+<body class="h-full flex flex-col">
+
+<!-- Header -->
+<header class="p-6 flex flex-col md:flex-row justify-between items-center bg-glass backdrop-blur-md border-b border-white/10 animate-fadeUp">
+  <h1 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent text-center md:text-left">
+    Checkout
+  </h1>
+  <p class="text-gray-400 mt-2 md:mt-0 text-center md:text-left">
+    Complete your subscription with ease
+  </p>
+</header>
+
+<!-- Stepper -->
+<div class="flex justify-center md:justify-start gap-4 mt-6 mb-8 px-6">
+  <div class="flex items-center gap-2">
+    <div class="w-6 h-6 rounded-full bg-gray-500 step-inactive flex items-center justify-center text-sm font-bold">1</div>
+    <span class="hidden md:inline step-inactive">Course</span>
+    <div class="w-10 h-1 bg-gray-500 rounded"></div>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="w-6 h-6 rounded-full bg-gray-500 step-inactive flex items-center justify-center text-sm font-bold">2</div>
+    <span class="hidden md:inline step-inactive">Package</span>
+    <div class="w-10 h-1 bg-gray-500 rounded"></div>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="w-6 h-6 rounded-full bg-violetGlow step-active flex items-center justify-center text-sm font-bold">3</div>
+    <span class="hidden md:inline step-inactive">Checkout</span>
+  </div>
+</div>
+
+<!-- Checkout Layout -->
+<main class="px-6 flex-1 flex flex-col lg:flex-row justify-center gap-6">
+
+  <!-- Left: Course + Package selection -->
+  <section class="flex-1 max-w-lg glass-card p-8 rounded-3xl shadow-lg flex flex-col gap-6 animate-fadeUp">
+    <h2 id="courseName" class="text-3xl font-bold text-white">Course Title</h2>
+    <p id="teacherName" class="text-gray-400 text-lg">By Teacher</p>
+
+    <h3 class="text-xl font-semibold text-white mt-6 mb-2">Select Package</h3>
+    <div id="packagesGrid" class="flex flex-col gap-4">
+      <!-- Package cards populated dynamically -->
+    </div>
+
+    <div class="border-t border-white/20 pt-4 flex justify-between items-center mt-6">
+      <p class="text-white font-bold text-lg">Total</p>
+      <p id="tierPrice" class="text-2xl font-extrabold text-white">$0</p>
+    </div>
+
+    <button id="payBtn" class="button-glow mt-6 bg-gradient-to-r from-violetGlow to-neonBlue px-8 py-4 rounded-xl text-white font-bold text-lg hover:opacity-90 transition">
+      Pay Now
+    </button>
+  </section>
+
+  <!-- Right: Features summary -->
+  <section class="flex-1 max-w-lg p-6 rounded-3xl glass-card shadow-lg animate-fadeUp">
+    <h3 class="text-2xl font-bold mb-4 text-white">What’s Included</h3>
+    <ul id="featuresList" class="list-disc list-inside text-gray-300 space-y-2">
+      <!-- Features dynamically populated -->
+    </ul>
+  </section>
+
+</main>
+
+<script type="module">
+const serverUrl = 'http://localhost:5000';
+let selected = JSON.parse(localStorage.getItem('selectedCourse')) || { tier: '', price: 0, courseId: null };
+
+const courseNameEl = document.getElementById('courseName');
+const teacherNameEl = document.getElementById('teacherName');
+const tierPriceEl = document.getElementById('tierPrice');
+const featuresListEl = document.getElementById('featuresList');
+const packagesGridEl = document.getElementById('packagesGrid');
+
+async function loadCourseAndPackages() {
+  try {
+   const courseRes = await fetch(`${serverUrl}/api/courses/${selected.courseId}`);
+const course = await courseRes.json();
+courseNameEl.textContent = course.title;
+teacherNameEl.textContent = `By ${course.teacher_name}`;
+
+
+    const pkgRes = await fetch(`${serverUrl}/api/courses/${selected.courseId}/packages`);
+    const packages = await pkgRes.json();
+
+    packagesGridEl.innerHTML = packages.map((pkg, i) => `
+      <div class="package-card glass-card p-5 rounded-2xl shadow-lg flex flex-col gap-3 cursor-pointer
+        ${pkg.recommended ? 'recommended border-2 border-violetGlow animate-pulseGlow' : ''}" 
+        data-name="${pkg.name}" data-price="${pkg.price}" >
+        <div class="flex justify-between items-center">
+          <h4 class="text-lg font-bold text-white">${pkg.name}</h4>
+          ${pkg.recommended ? '<span class="text-violetGlow font-semibold text-sm">Recommended</span>' : ''}
+        </div>
+        <p class="text-gray-300 text-sm">${pkg.features.join(', ')}</p>
+        <p class="text-white font-bold text-xl mt-2">$${pkg.price}</p>
+      </div>
+    `).join('');
+
+    // Add click listeners to select package
+    document.querySelectorAll('.package-card').forEach(card => {
+      card.addEventListener('click', () => {
+        selected.tier = card.dataset.name;
+        selected.price = parseFloat(card.dataset.price);
+        localStorage.setItem('selectedCourse', JSON.stringify(selected));
+        tierPriceEl.textContent = `$${selected.price}`;
+
+        const selectedPkg = packages.find(p => p.name === selected.tier);
+        if(selectedPkg) {
+          featuresListEl.innerHTML = selectedPkg.features.map(f => `<li>${f}</li>`).join('');
+        }
+
+        document.querySelectorAll('.package-card').forEach(c => c.classList.remove('border-2', 'border-violetGlow'));
+        card.classList.add('border-2', 'border-neonBlue');
+      });
+    });
+
+    // If a package was previously selected, highlight it
+    if(selected.tier){
+      const preselected = Array.from(document.querySelectorAll('.package-card'))
+        .find(c => c.dataset.name === selected.tier);
+      if(preselected) preselected.click();
+    }
+
+  } catch(err) {
+    console.error(err);
+  }
+}
+document.getElementById('payBtn').addEventListener('click', async () => {
+  if(!selected.tier) return alert('Please select a package first.');
+
+  try {
+    const res = await fetch(`${serverUrl}/api/enrollments/${selected.courseId}/enroll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: JSON.stringify({ tier: selected.tier, price_paid: selected.price })
+    });
+
+    const data = await res.json();
+    if(res.ok){
+      alert('Payment successful! You are now enrolled.');
+      window.location.href = '../dashboards/student.html';
+    } else {
+      alert('Error: ' + data.message);
+    }
+
+  } catch(err) {
+    console.error(err);
+    alert('Something went wrong. Try again.');
+  }
+});
+
+
+
+
+loadCourseAndPackages();
+</script>
+</body>
+</html>

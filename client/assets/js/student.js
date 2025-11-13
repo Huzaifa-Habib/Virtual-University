@@ -1,15 +1,28 @@
 // File: client/assets/js/student.js
-// Clean student dashboard — booking + UI only (video handled by video.js on video.html)
+// Student Dashboard — shows enrolled courses + bookings + UI
 
 const API_BASE = window.API_BASE || "http://localhost:5000";
-const authToken = localStorage.getItem("token");
-const userName = localStorage.getItem("userName") || "Student";
 
-if (!authToken) {
-  console.warn("No authToken found in localStorage.authToken");
+/* === Decode JWT Helper === */
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    console.error("Invalid token");
+    return null;
+  }
 }
 
-/* DOM refs */
+/* === Auth + User Info === */
+const token = localStorage.getItem("token");
+const decoded = token ? parseJwt(token) : null;
+const studentId = decoded ? decoded.id : null;
+const userName = localStorage.getItem("userName") || "Student";
+
+if (!token) console.warn("No token found in localStorage.token");
+if (!studentId) console.warn("No student ID found in token payload");
+
+/* === DOM References === */
 const upcomingGrid = document.getElementById("upcomingGrid");
 const requestsGrid = document.getElementById("requestsGrid");
 const toastEl = document.getElementById("toast");
@@ -25,15 +38,18 @@ const teacherIdInput = document.getElementById("teacherIdInput");
 const courseIdInput = document.getElementById("courseIdInput");
 const sessionTimeInput = document.getElementById("sessionTimeInput");
 const requestBtn = document.getElementById("requestBtn");
+const enrolledCoursesGrid = document.getElementById("enrolledCoursesGrid");
 
-/* basic init */
+let bookedDates = [];
+
+/* === Init UI === */
 welcomeName && (welcomeName.textContent = `Welcome, ${userName}`);
 studentNameSidebar && (studentNameSidebar.textContent = userName);
 
 function headers() {
   return {
     "Content-Type": "application/json",
-    Authorization: authToken ? `Bearer ${authToken}` : "",
+    Authorization: token ? `Bearer ${token}` : "",
   };
 }
 
@@ -44,9 +60,63 @@ function toast(msg, ms = 3000) {
   setTimeout(() => toastEl.classList.add("hidden"), ms);
 }
 
+/* === Load Enrolled Courses === */
+async function loadEnrolledCourses() {
+  try {
+    if (!studentId) {
+      console.warn("No student ID found in token");
+      enrolledCoursesGrid.innerHTML = `<p class="text-gray-400 text-center">Login required to view courses.</p>`;
+      return;
+    }
 
+    const res = await fetch(`${API_BASE}/api/enrollments/student/${studentId}`, {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch enrollments");
 
-/* Fetch bookings for logged-in student */
+    const enrollments = await res.json();
+
+    if (!enrollments.length) {
+      enrolledCoursesGrid.innerHTML = `<p class="text-gray-400 text-center">You have not enrolled in any courses yet.</p>`;
+      return;
+    }
+
+    enrolledCoursesGrid.innerHTML = enrollments
+      .map(
+        (e) => `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition">
+        <div>
+          <h4 class="text-lg font-bold text-white">${e.course_title || 'Untitled Course'}</h4>
+<p class="text-gray-400 text-sm">By ${e.teacher_name || 'Unknown Teacher'}</p>
+
+          <p class="text-gray-200 text-sm">Package: ${e.package_name}</p>
+          <p class="text-gray-200 text-sm">Price Paid: $${e.price_paid}</p>
+          <p class="text-gray-400 text-xs mt-1">Enrolled on: ${new Date(
+            e.enrolled_at
+          ).toLocaleDateString()}</p>
+        </div>
+        <div class="mt-2 sm:mt-0">
+          <span class="px-3 py-1 rounded-full text-xs font-semibold ${
+            e.status === "active"
+              ? "bg-emerald-400 text-black"
+              : "bg-gray-500 text-white"
+          }">
+            ${e.status.toUpperCase()}
+          </span>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  } catch (err) {
+    console.error(err);
+    enrolledCoursesGrid.innerHTML = `<p class="text-center text-red-400">Failed to load enrolled courses.</p>`;
+  }
+}
+
+loadEnrolledCourses();
+
+/* === Fetch Bookings === */
 async function fetchBookings() {
   try {
     upcomingGrid.innerHTML = `<div class="student-card">Loading…</div>`;
@@ -71,55 +141,59 @@ async function fetchBookings() {
   }
 }
 
-/* Render bookings */
+/* === Render Bookings === */
 function renderBookings(list) {
+  if (!upcomingGrid || !requestsGrid) return;
+
   const q = (searchInput && searchInput.value || "").toLowerCase().trim();
+
   const filtered = list.filter((b) => {
     if (!q) return true;
-    const text = `${b.teacherName||""} ${b.courseTitle||""} ${b.time||""}`.toLowerCase();
+    const text = `${b.teacherName || ""} ${b.courseTitle || ""} ${
+      b.time || ""
+    }`.toLowerCase();
     return text.includes(q);
   });
 
-  const upcoming = filtered.filter((b) => b.status === "accepted" || b.status === "confirmed");
-  const pending = filtered.filter((b) => b.status === "requested" || b.status === "pending");
+  const upcoming = filtered.filter(
+    (b) => b.status === "accepted" || b.status === "confirmed"
+  );
+  const pending = filtered.filter(
+    (b) => b.status === "requested" || b.status === "pending"
+  );
 
-  upcomingGrid.innerHTML = upcoming.length ? upcoming.map(cardUpcoming).join("") : `<div class="student-card">No upcoming sessions.</div>`;
-  requestsGrid.innerHTML = pending.length ? pending.map(cardPending).join("") : `<div class="student-card">No pending requests.</div>`;
+  upcomingGrid.innerHTML = upcoming.length
+    ? upcoming.map(cardUpcoming).join("")
+    : `<div class="student-card">No upcoming sessions.</div>`;
 
-  if (!list.length) emptyState.classList.remove("hidden"); else emptyState.classList.add("hidden");
-}
-async function loadCalendarBookings() {
-  const res = await fetch(`${API_BASE}/api/bookings/student`, {
-    headers: headers(),
-  });
+  requestsGrid.innerHTML = pending.length
+    ? pending.map(cardPending).join("")
+    : `<div class="student-card">No pending requests.</div>`;
 
-  const data = await res.json();
-
-  console.log("BOOKINGS FOR CALENDAR >>", data);
-
-  const dates = data.map(b => {
-    const d = new Date(b.date);
-    if (!isNaN(d)) {
-      return d.toISOString().slice(0, 10);
-    }
-    return null;
-  }).filter(Boolean);
-
-  console.log("CALENDAR NORMALIZED DATES >>", dates);
-
-  studentCalendar.set("disable", dates);
+  if (emptyState) {
+    if (!list.length) emptyState.classList.remove("hidden");
+    else emptyState.classList.add("hidden");
+  }
 }
 
+/* === Card Templates === */
+function esc(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"'`=\/]/g, (c) =>
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+      "/": "&#x2F;",
+      "`": "&#x60;",
+      "=": "&#x3D;",
+    }[c])
+  );
+}
 
-
-
-
-loadCalendarBookings();
-
-
-function esc(s){ if(!s) return ""; return String(s).replace(/[&<>"'`=\/]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c])); }
-
-function cardUpcoming(b){
+function cardUpcoming(b) {
   const hasVideo = b.room_id || b.video_room_id || b.roomId;
   return `
     <div class="student-card">
@@ -127,7 +201,7 @@ function cardUpcoming(b){
       <p>Teacher: <strong>${esc(b.teacherName || "Teacher")}</strong></p>
       <p style="color:var(--muted)">${esc(b.time || "TBD")}</p>
       <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
-        <span class="pill acc">Accepted</span>
+        <span class="status-pill accepted">Accepted</span>
         <div style="flex:1"></div>
         ${
           hasVideo
@@ -140,14 +214,14 @@ function cardUpcoming(b){
   `;
 }
 
-function cardPending(b){
+function cardPending(b) {
   return `
     <div class="student-card">
-      <h3>${esc(b.courseTitle||"Course")}</h3>
-      <p>Teacher: <strong>${esc(b.teacherName||"Teacher")}</strong></p>
-      <p style="color:var(--muted)">${esc(b.time||"TBD")}</p>
+      <h3>${esc(b.courseTitle || "Course")}</h3>
+      <p>Teacher: <strong>${esc(b.teacherName || "Teacher")}</strong></p>
+      <p style="color:var(--muted)">${esc(b.time || "TBD")}</p>
       <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
-        <span class="pill pend">Pending</span>
+        <span class="status-pill pending">Pending</span>
         <div style="flex:1"></div>
         <button class="student-btn secondary" onclick="viewBooking(${b.id})">View</button>
         <button class="student-btn secondary" onclick="cancelRequest(${b.id})">Cancel</button>
@@ -156,20 +230,17 @@ function cardPending(b){
   `;
 }
 
-/* Request booking */
+/* === Bookings API Actions === */
 async function requestBooking() {
   const teacherId = teacherIdInput.value.trim();
   const courseId = courseIdInput.value.trim() || null;
-  const datetime = sessionTimeInput.value.trim(); // flatpickr already gives "2025-11-10 12:00"
-
-  console.log("DEBUG REQUEST >>", { teacherId, courseId, datetime });
+  const datetime = sessionTimeInput.value.trim();
 
   if (!teacherId || !datetime) {
     toast("Missing teacher or time");
     return;
   }
 
-  // Convert "2025-11-10 12:00" → "2025-11-10T12:00"
   const dtISO = datetime.replace(" ", "T");
 
   const res = await fetch(`${API_BASE}/api/bookings`, {
@@ -178,13 +249,11 @@ async function requestBooking() {
     body: JSON.stringify({
       teacherId,
       courseId,
-      datetime: dtISO
-    })
+      datetime: dtISO,
+    }),
   });
 
   const out = await res.json();
-  console.log("BACKEND RESPONSE >>", out);
-
   if (!res.ok) {
     toast(out.message || "Request failed");
     return;
@@ -197,62 +266,87 @@ async function requestBooking() {
   fetchBookings();
 }
 
-
-
-/* Cancel request */
-async function cancelRequest(id){
-  if(!confirm("Cancel this booking?")) return;
+async function cancelRequest(id) {
+  if (!confirm("Cancel this booking?")) return;
   try {
     const res = await fetch(`${API_BASE}/api/bookings/${id}`, {
       method: "DELETE",
-      headers: headers()
+      headers: headers(),
     });
-    if(!res.ok){ toast("Cancel failed"); return; }
+    if (!res.ok) {
+      toast("Cancel failed");
+      return;
+    }
     toast("Cancelled");
     fetchBookings();
-  } catch(err){ console.error(err); toast("Network error"); }
+  } catch (err) {
+    console.error(err);
+    toast("Network error");
+  }
 }
 
-/* View booking */
-function viewBooking(id){ window.location.href = `${location.origin}/views/booking.html?id=${id}`; }
-
-/* Chat helpers (for dashboard chat if used) */
-function appendChatSystem(text){
-  if(!toastEl) return;
-  toast(text, 3000);
+function viewBooking(id) {
+  window.location.href = `${location.origin}/views/booking.html?id=${id}`;
 }
 
-function appendChatUser(text){
-  if(!toastEl) return;
-  toast(text, 3000);
+/* === Calendar Bookings === */
+async function loadCalendarBookings() {
+  try {
+    const res = await fetch(`${API_BASE}/api/bookings/student`, {
+      headers: headers(),
+    });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    bookedDates = data
+      .map((b) => {
+        const d = new Date(b.date || b.time);
+        return isNaN(d) ? null : d.toISOString().slice(0, 10);
+      })
+      .filter(Boolean);
+
+    console.log("CALENDAR NORMALIZED DATES >>", bookedDates);
+    studentCalendar.redraw();
+  } catch (err) {
+    console.error("Failed to load calendar bookings:", err);
+  }
 }
+
+loadCalendarBookings();
+
+/* === Calendar Setup === */
 flatpickr("#sessionTimeInput", {
   enableTime: true,
   dateFormat: "Y-m-d H:i",
-  minDate: "today", // disables all past dates
+  minDate: "today",
   time_24hr: true,
   theme: "dark",
   disableMobile: true,
   minuteIncrement: 15,
 });
 
-// calendar for dashboard showing booked days
 const studentCalendar = flatpickr("#studentCalendar", {
-    inline: true,
-    dateFormat: "Y-m-d",
-    disable: [], // we’ll fill this with booked dates
+  inline: true,
+  dateFormat: "Y-m-d",
+  minDate: "today",
+  disableMobile: true,
+  onDayCreate: function (dObj, dStr, fp, dayElem) {
+    const date = dayElem.dateObj.toISOString().slice(0, 10);
+    if (bookedDates.includes(date)) {
+      dayElem.classList.add("booked-highlight");
+    }
+  },
 });
 
+/* === UI Buttons === */
+if (refreshBtn) refreshBtn.addEventListener("click", fetchBookings);
+if (searchInput) searchInput.addEventListener("input", fetchBookings);
+if (logoutBtn)
+  logoutBtn.addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "/";
+  });
+if (requestBtn) requestBtn.addEventListener("click", requestBooking);
 
-/* UI wiring */
-if(refreshBtn) refreshBtn.addEventListener("click", fetchBookings);
-if(searchInput) searchInput.addEventListener("input", fetchBookings);
-if(logoutBtn) logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("userName");
-  window.location.href = "/";
-});
-if(requestBtn) requestBtn.addEventListener("click", requestBooking);
-
-/* initial load */
+/* === Initial Load === */
 fetchBookings();
