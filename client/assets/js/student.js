@@ -29,11 +29,13 @@ const toastEl = document.getElementById("toast");
 const emptyState = document.getElementById("emptyState");
 const welcomeName = document.getElementById("welcomeName");
 const studentNameSidebar = document.getElementById("studentNameSidebar");
-
+const quickActions = document.getElementById("quickActions");
+const upcomingCount = document.getElementById("upcomingCount");
+const pendingCount = document.getElementById("pendingCount");
+const messageCount = document.getElementById("messageCount");
 const refreshBtn = document.getElementById("refreshBtn");
 const searchInput = document.getElementById("searchInput");
 const logoutBtn = document.getElementById("logoutBtn");
-
 const teacherIdInput = document.getElementById("teacherIdInput");
 const courseIdInput = document.getElementById("courseIdInput");
 const sessionTimeInput = document.getElementById("sessionTimeInput");
@@ -59,6 +61,41 @@ function toast(msg, ms = 3000) {
   toastEl.textContent = msg;
   toastEl.classList.remove("hidden");
   setTimeout(() => toastEl.classList.add("hidden"), ms);
+}
+
+function formatDateTime(dateStr, timeStr) {
+  if (!dateStr) return "TBD";
+  try {
+    const date = new Date(dateStr);
+    const formatted = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    return timeStr ? `${formatted} at ${timeStr}` : formatted;
+  } catch {
+    return dateStr;
+  }
+}
+
+function setActiveSection(sectionName) {
+  const overviewSection = document.getElementById("overviewSection");
+  const materialsSection = document.getElementById("materialsSection");
+
+  if (overviewSection) overviewSection.classList.add("hidden");
+  if (materialsSection) materialsSection.classList.add("hidden");
+
+  const target = document.getElementById(`${sectionName}Section`);
+  if (target) {
+    target.classList.remove("hidden");
+  }
+
+  document.querySelectorAll("aside nav button").forEach((btn) => {
+    btn.classList.remove("bg-white/5", "bg-violetGlow/20");
+    if (btn.dataset.section === sectionName) {
+      btn.classList.add("bg-white/5");
+    }
+  });
 }
 
 /* === Load Enrolled Teachers === */
@@ -310,7 +347,9 @@ function renderBookings(list) {
   const pending = filtered.filter(
     (b) => b.status === "requested" || b.status === "pending"
   );
-
+  if (upcomingCount) upcomingCount.textContent = upcoming.length;
+  if (pendingCount) pendingCount.textContent = pending.length;
+  if (messageCount) messageCount.textContent = "0";
   upcomingGrid.innerHTML = upcoming.length
     ? upcoming.map(cardUpcoming).join("")
     : `<div class="student-card">No upcoming sessions.</div>`;
@@ -319,6 +358,7 @@ function renderBookings(list) {
     ? pending.map(cardPending).join("")
     : `<div class="student-card">No pending requests.</div>`;
 
+  renderQuickActions(upcoming);
   if (emptyState) {
     if (!list.length) emptyState.classList.remove("hidden");
     else emptyState.classList.add("hidden");
@@ -348,7 +388,7 @@ function cardUpcoming(b) {
     <div class="student-card">
       <h3>${esc(b.courseTitle || "Course")}</h3>
       <p>Teacher: <strong>${esc(b.teacherName || "Teacher")}</strong></p>
-      <p style="color:var(--muted)">${esc(b.time || "TBD")}</p>
+      <p style="color:var(--muted)">${esc(formatDateTime(b.date, b.time))}</p>
       <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
         <span class="status-pill accepted">Accepted</span>
         <div style="flex:1"></div>
@@ -368,7 +408,7 @@ function cardPending(b) {
     <div class="student-card">
       <h3>${esc(b.courseTitle || "Course")}</h3>
       <p>Teacher: <strong>${esc(b.teacherName || "Teacher")}</strong></p>
-      <p style="color:var(--muted)">${esc(b.time || "TBD")}</p>
+      <p style="color:var(--muted)">${esc(formatDateTime(b.date, b.time))}</p>
       <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
         <span class="status-pill pending">Pending</span>
         <div style="flex:1"></div>
@@ -413,6 +453,45 @@ async function requestBooking() {
   courseIdInput.value = "";
   teacherIdInput.value = "";
   fetchBookings();
+}
+
+function renderQuickActions(upcoming) {
+  if (!quickActions) return;
+
+  const nextWithRoom = upcoming.find((b) => b.room_id || b.video_room_id || b.roomId);
+  const actions = [];
+
+  if (nextWithRoom) {
+    actions.push(
+      `<a href="/views/video.html?bookingId=${nextWithRoom.id}" target="_blank" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Join Next Session</a>`
+    );
+  }
+
+  actions.push(
+    `<button type="button" data-action="request" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Request Session</button>`
+  );
+  actions.push(
+    `<button type="button" data-action="materials" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">My Materials</button>`
+  );
+  actions.push(
+    `<a href="/views/courses.html" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Browse Courses</a>`
+  );
+
+  quickActions.innerHTML = actions.join("");
+
+  quickActions.querySelectorAll("button[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action;
+      if (action === "request") {
+        teacherIdInput?.focus();
+        teacherIdInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (action === "materials") {
+        setActiveSection("materials");
+      }
+    });
+  });
 }
 
 async function cancelRequest(id) {

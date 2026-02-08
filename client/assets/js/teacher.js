@@ -197,6 +197,26 @@ const api = {
     }
   },
 
+  // Create video room for booking
+  createVideoRoom: async (bookingId) => {
+    try {
+      const response = await fetch(`${API_BASE}/video/${bookingId}/create`, {
+        method: 'POST',
+        headers: utils.headers()
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Create room failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      utils.handleError(error, 'Create video room');
+      return null;
+    }
+  },
+
 // Fetch students for teacher
   fetchStudents: async () => {
     try {
@@ -320,7 +340,8 @@ const render = {
 
   // Render accepted booking card
   acceptedCard: (booking) => {
-    const { id, courseTitle, studentName, date, time } = booking;
+    const { id, courseTitle, studentName, date, time, roomId } = booking;
+    const hasRoom = Boolean(roomId);
     return `
       <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-neonBlue/50 transition animate-fade">
         <h3 class="text-lg font-semibold mb-2">${utils.escapeHtml(courseTitle)}</h3>
@@ -330,11 +351,19 @@ const render = {
         <p class="text-gray-400 text-sm mb-4">
           ${utils.formatDateTime(date, time)}
         </p>
+        <p class="text-xs text-gray-400 mb-4">
+          ${hasRoom ? 'Video link ready to share.' : 'Video link will be generated on start.'}
+        </p>
         <div class="flex items-center gap-2 flex-wrap">
           <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">
             Accepted
           </span>
           <div class="flex-1"></div>
+          <button 
+            onclick="handleCopyLink(${id})"
+            class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+            Copy Link
+          </button>
           <button 
             onclick="handleStartSession(${id})"
             class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg text-sm font-semibold hover:opacity-90 transition">
@@ -369,7 +398,7 @@ const render = {
 
   // Render session card
   sessionCard: (booking) => {
-    const { id, courseTitle, studentName, date, time, status } = booking;
+    const { id, courseTitle, studentName, date, time, status, roomId } = booking;
     const statusLabel = status || 'requested';
     const statusStyles = {
       requested: 'bg-yellow-500/20 text-yellow-400',
@@ -378,6 +407,7 @@ const render = {
     };
     const badgeClass = statusStyles[statusLabel] || 'bg-white/10 text-gray-300';
     const canStart = statusLabel === 'accepted' || statusLabel === 'confirmed';
+    const hasRoom = Boolean(roomId);
 
     return `
       <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-neonBlue/40 transition animate-fade">
@@ -393,6 +423,9 @@ const render = {
             ${utils.escapeHtml(statusLabel)}
           </span>
         </div>
+        <p class="text-xs text-gray-400 mt-3">
+          ${hasRoom ? 'Video link ready to share.' : 'Video link will be generated on start.'}
+        </p>
         <div class="flex items-center gap-2 mt-4 flex-wrap">
           ${statusLabel === 'requested' ? `
             <button 
@@ -406,6 +439,11 @@ const render = {
               onclick="handleStartSession(${id})"
               class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg text-sm font-semibold hover:opacity-90 transition">
               Start Session
+            </button>
+            <button 
+              onclick="handleCopyLink(${id})"
+              class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+              Copy Link
             </button>
           ` : ''}
           <button 
@@ -550,9 +588,25 @@ const handlers = {
   },
 
   // Start session handler
-  startSession: (bookingId) => {
+  startSession: async (bookingId) => {
+    const booking = state.bookings.find(item => item.id === bookingId);
+    if (!booking?.roomId) {
+      await api.createVideoRoom(bookingId);
+      await handlers.loadBookings();
+    }
     const url = `${window.location.origin}/views/video.html?bookingId=${bookingId}`;
     window.open(url, '_blank');
+  },
+
+  // Copy session link
+  copyLink: async (bookingId) => {
+    const url = `${window.location.origin}/views/video.html?bookingId=${bookingId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      utils.toast('Session link copied to clipboard!');
+    } catch (error) {
+      utils.handleError(error, 'Copy link');
+    }
   },
 
   // View details handler
@@ -711,7 +765,7 @@ const init = () => {
 window.handleAcceptBooking = handlers.acceptBooking;
 window.handleStartSession = handlers.startSession;
 window.handleViewDetails = handlers.viewDetails;
-
+window.handleCopyLink = handlers.copyLink;
 /* ==================== START APPLICATION ==================== */
 // Wait for DOM to be fully loaded
 if (document.readyState === 'loading') {

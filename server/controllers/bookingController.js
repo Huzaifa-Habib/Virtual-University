@@ -1,4 +1,5 @@
 import { createBooking, getBookingById, updateBookingStatus, getBookingsByTeacher, getBookingsByStudent } from "../models/Booking.js";
+import { createVideoSession, getVideoSessionByBooking } from "../models/VideoSession.js";
 
 // Student: request a booking
 
@@ -43,7 +44,23 @@ export const acceptBooking = (req, res) => {
   const bookingId = req.params.id;
   updateBookingStatus(bookingId, "accepted", (err) => {
     if (err) return res.status(500).json({ message: "DB error", error: err });
-    res.json({ message: "Booking accepted" });
+    getVideoSessionByBooking(bookingId, (fetchErr, results) => {
+      if (fetchErr) {
+        return res.status(500).json({ message: "DB error", error: fetchErr });
+      }
+
+      if (results.length) {
+        return res.json({ message: "Booking accepted", roomId: results[0].room_id });
+      }
+
+      const roomId = `room_${bookingId}_${Date.now()}`;
+      createVideoSession(bookingId, roomId, (createErr) => {
+        if (createErr) {
+          return res.status(500).json({ message: "DB error", error: createErr });
+        }
+        return res.json({ message: "Booking accepted", roomId });
+      });
+    });
   });
 };
 

@@ -31,10 +31,12 @@ export const getBookingsByTeacher = (teacherId, callback) => {
   const sql = `
     SELECT b.id, b.status, b.date, b.time,
            u.name AS student_name,
-           c.title AS course_title
+           c.title AS course_title,
+           v.room_id
     FROM bookings b
     JOIN users u ON b.student_id = u.id
     LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN video_sessions v ON b.id = v.booking_id
     WHERE b.teacher_id = ?
     ORDER BY b.date ASC, b.time ASC
   `;

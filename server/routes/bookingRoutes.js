@@ -19,9 +19,9 @@ router.get("/", protect, allowRoles("teacher"), (req, res) => {
       courseTitle: b.course_title || "",
       studentName: b.student_name || "",
       date: b.date,
-time: b.time,
-
-      status: b.status
+      time: b.time,
+      status: b.status,
+      roomId: b.room_id || null
     }));
     res.json(bookings);
   });
