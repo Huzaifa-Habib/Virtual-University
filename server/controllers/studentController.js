@@ -15,11 +15,13 @@ export const getStudentsForTeacher = (req, res) => {
   const teacherId = req.user.id; // comes from JWT
 
   const sql = `
-    SELECT u.id, u.name, u.email
+    SELECT u.id, u.name, u.email,
+      COUNT(b.id) AS session_count,
+      MAX(b.date) AS last_session_date
     FROM users u
     JOIN bookings b ON u.id = b.student_id
     WHERE b.teacher_id = ?
-    GROUP BY u.id
+    GROUP BY u.id, u.name, u.email
   `;
 
   db.query(sql, [teacherId], (err, results) => {

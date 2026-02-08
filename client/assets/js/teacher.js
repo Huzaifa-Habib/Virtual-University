@@ -22,6 +22,8 @@ const DOM = {
   // Dashboard elements
   pendingGrid: document.getElementById('pendingGrid'),
   acceptedGrid: document.getElementById('acceptedGrid'),
+   sessionsGrid: document.getElementById('sessionsGrid'),
+  studentsGrid: document.getElementById('studentsGrid'),
   emptyState: document.getElementById('emptyState'),
   toast: document.getElementById('toast'),
   teacherName: document.getElementById('teacherNameSidebar'),
@@ -52,6 +54,7 @@ const DOM = {
 /* ==================== STATE MANAGEMENT ==================== */
 const state = {
   bookings: [],
+  students: [],
   courses: [],
   activeCourseId: localStorage.getItem('activeCourseId') || '',
   currentSection: 'dashboard'
@@ -194,6 +197,26 @@ const api = {
     }
   },
 
+// Fetch students for teacher
+  fetchStudents: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/students`, {
+        headers: utils.headers()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      state.students = Array.isArray(data) ? data : [];
+      return state.students;
+    } catch (error) {
+      utils.handleError(error, 'Fetch students');
+      return [];
+    }
+  },
+
   // Upload material
   uploadMaterial: async (courseId, formData) => {
     try {
@@ -327,6 +350,110 @@ const render = {
     `;
   },
 
+  // Render sessions list
+  sessions: (bookings) => {
+    if (!DOM.sessionsGrid) return;
+    const sessions = bookings.slice().sort((a, b) => {
+      const aDate = new Date(`${a.date || ''} ${a.time || ''}`.trim());
+      const bDate = new Date(`${b.date || ''} ${b.time || ''}`.trim());
+      return aDate - bDate;
+    });
+
+    if (!sessions.length) {
+      DOM.sessionsGrid.innerHTML = '<div class="card">No sessions found.</div>';
+      return;
+    }
+
+    DOM.sessionsGrid.innerHTML = sessions.map(render.sessionCard).join('');
+  },
+
+  // Render session card
+  sessionCard: (booking) => {
+    const { id, courseTitle, studentName, date, time, status } = booking;
+    const statusLabel = status || 'requested';
+    const statusStyles = {
+      requested: 'bg-yellow-500/20 text-yellow-400',
+      accepted: 'bg-green-500/20 text-green-400',
+      confirmed: 'bg-emerald-500/20 text-emerald-400'
+    };
+    const badgeClass = statusStyles[statusLabel] || 'bg-white/10 text-gray-300';
+    const canStart = statusLabel === 'accepted' || statusLabel === 'confirmed';
+
+    return `
+      <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-neonBlue/40 transition animate-fade">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-semibold mb-2">${utils.escapeHtml(courseTitle)}</h3>
+            <p class="text-gray-300 mb-1">
+              Student: <strong>${utils.escapeHtml(studentName)}</strong>
+            </p>
+            <p class="text-gray-400 text-sm">${utils.formatDateTime(date, time)}</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}">
+            ${utils.escapeHtml(statusLabel)}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 mt-4 flex-wrap">
+          ${statusLabel === 'requested' ? `
+            <button 
+              onclick="handleAcceptBooking(${id})"
+              class="px-4 py-2 bg-gradient-to-r from-violetGlow to-neonBlue rounded-lg text-sm font-semibold hover:opacity-90 transition">
+              Accept
+            </button>
+          ` : ''}
+          ${canStart ? `
+            <button 
+              onclick="handleStartSession(${id})"
+              class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg text-sm font-semibold hover:opacity-90 transition">
+              Start Session
+            </button>
+          ` : ''}
+          <button 
+            onclick="handleViewDetails(${id})"
+            class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+            View Details
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  // Render students list
+  students: (students) => {
+    if (!DOM.studentsGrid) return;
+    if (!students.length) {
+      DOM.studentsGrid.innerHTML = '<div class="card">No students found.</div>';
+      return;
+    }
+
+    DOM.studentsGrid.innerHTML = students.map(render.studentCard).join('');
+  },
+
+  // Render student card
+  studentCard: (student) => {
+    const lastSession = student.last_session_date
+      ? new Date(student.last_session_date).toLocaleDateString()
+      : 'No sessions yet';
+    return `
+      <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-violetGlow/40 transition animate-fade">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violetGlow to-neonBlue flex items-center justify-center text-white font-bold text-lg">
+            ${utils.escapeHtml(student.name?.charAt(0)?.toUpperCase() || '?')}
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold">${utils.escapeHtml(student.name)}</h3>
+            <p class="text-xs text-gray-400">Student ID: <span class="font-mono text-neonBlue">${student.id}</span></p>
+          </div>
+        </div>
+        ${student.email ? `<p class="text-sm text-gray-400 mb-3">📧 ${utils.escapeHtml(student.email)}</p>` : ''}
+        <div class="flex items-center justify-between text-xs text-gray-400">
+          <span>Sessions: <strong class="text-white">${student.session_count || 0}</strong></span>
+          <span>Last session: <strong class="text-white">${utils.escapeHtml(lastSession)}</strong></span>
+        </div>
+      </div>
+    `;
+  },
+
   // Render course options
   courseOptions: (courses) => {
     if (!DOM.courseSelect) return;
@@ -392,6 +519,24 @@ const handlers = {
 
     const bookings = await api.fetchBookings();
     render.bookings(bookings);
+  },
+
+  // Load sessions
+  loadSessions: async () => {
+    if (DOM.sessionsGrid) {
+      DOM.sessionsGrid.innerHTML = '<div class="card animate-pulse">Loading sessions...</div>';
+    }
+    const bookings = await api.fetchBookings();
+    render.sessions(bookings);
+  },
+
+  // Load students
+  loadStudents: async () => {
+    if (DOM.studentsGrid) {
+      DOM.studentsGrid.innerHTML = '<div class="card animate-pulse">Loading students...</div>';
+    }
+    const students = await api.fetchStudents();
+    render.students(students);
   },
 
   // Accept booking handler
@@ -512,6 +657,12 @@ const handlers = {
       // Load section-specific data
       if (sectionName === 'materials') {
         handlers.loadCourses();
+      }
+       if (sectionName === 'sessions') {
+        handlers.loadSessions();
+      }
+      if (sectionName === 'students') {
+        handlers.loadStudents();
       }
     }
   },
