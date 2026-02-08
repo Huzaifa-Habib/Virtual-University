@@ -17,15 +17,11 @@ import studentRoutes from "./routes/studentRoutes.js";
 import courseRoutes from './routes/courseRoutes.js';
 import enrollmentRoutes from './routes/enrollmentRoutes.js';
 import teacherMaterialsRoutes from "./routes/teacherMaterialsRoutes.js";
+import studentMaterialsRoutes from "./routes/studentMaterialsRoutes.js";
 import userRoutes from './routes/userRoutes.js';
 
 import path from "path";
 import { fileURLToPath } from "url";
-
-
-
-
-
 
 dotenv.config();
 
@@ -52,8 +48,9 @@ app.use("/api/students", protect, studentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use("/api", teacherMaterialsRoutes);
-app.use('/api/users', userRoutes)
+app.use('/api/users', userRoutes);
 app.use('/api/materials', teacherMaterialsRoutes);
+app.use('/api/materials', studentMaterialsRoutes);
 
 
 

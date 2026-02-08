@@ -35,8 +35,9 @@
       <h1 class="text-2xl font-bold mb-8 bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent">
         Virtual University</h1>
       <nav class="space-y-3">
-        <a href="#" class="block px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition">Overview</a>
-        <a href="../views/courses.html" class="block px-3 py-2 rounded-xl hover:bg-white/5">Courses</a>
+        <button class="block w-full text-left px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition" data-section="overview">Overview</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition" data-section="materials">My Materials</button>
+        <a href="../views/courses.html" class="block px-3 py-2 rounded-xl hover:bg-white/5">All Courses</a>
         <a href="#" class="block px-3 py-2 rounded-xl hover:bg-white/5">Chatbot</a>
       </nav>
     </div>
@@ -63,106 +64,139 @@
       <h2 class="text-xl font-semibold">Dashboard</h2>
     </div>
 
-    <!-- Header -->
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-3">
-      <div>
-        <h2 id="welcomeName" class="text-3xl font-semibold">Welcome, Student</h2>
-        <p class="text-gray-400 text-sm">Your upcoming sessions and course materials</p>
-      </div>
-      <div class="flex items-center gap-3 flex-wrap">
-        <input id="searchInput" type="text" placeholder="Search sessions, teachers or courses"
-          class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm w-full sm:w-64">
-        <button id="refreshBtn"
-          class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
-      </div>
-    </header>
-
-    <!-- Stats + Quick Actions -->
-    <section class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
-      <div class="col-span-1 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
-        <h3 class="text-lg font-semibold mb-4">Bookings Calendar</h3>
-        <div id="studentCalendarWrapper" class="w-full overflow-hidden">
-          <div id="studentCalendar"></div>
-        </div>
-      </div>
-      <div
-        class="col-span-1 xl:col-span-2 flex flex-col justify-between bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 text-center">
-          <div class="p-4 bg-white/5 rounded-xl">
-            <p class="text-gray-400 text-sm">Upcoming</p>
-            <p id="upcomingCount" class="text-2xl font-bold text-neonBlue">0</p>
-          </div>
-          <div class="p-4 bg-white/5 rounded-xl">
-            <p class="text-gray-400 text-sm">Pending</p>
-            <p id="pendingCount" class="text-2xl font-bold text-violetGlow">0</p>
-          </div>
-          <div class="p-4 bg-white/5 rounded-xl">
-            <p class="text-gray-400 text-sm">Messages</p>
-            <p id="messageCount" class="text-2xl font-bold text-emerald-400">0</p>
-          </div>
-        </div>
-        <div class="flex justify-between text-sm text-gray-400 mb-3">
-          <span>Quick Actions</span>
-        </div>
-        <div class="mt-auto flex">
-          <a href="#" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Browse
-            Teachers</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- My Teachers Section (NEW) -->
-    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-      <div class="flex items-center justify-between mb-6">
+    <!-- OVERVIEW SECTION -->
+    <section id="overviewSection" class="animate-fade">
+      <!-- Header -->
+      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-3">
         <div>
-          <h3 class="text-xl font-semibold">My Teachers</h3>
-          <p class="text-sm text-gray-400">Teachers from your enrolled courses</p>
+          <h2 id="welcomeName" class="text-3xl font-semibold">Welcome, Student</h2>
+          <p class="text-gray-400 text-sm">Your upcoming sessions and course materials</p>
         </div>
-        <span class="text-xs px-3 py-1 bg-neonBlue/20 text-neonBlue rounded-full">
-          Quick Access
-        </span>
-      </div>
-      <div id="enrolledTeachersGrid" class="space-y-4">
-        <p class="text-gray-400 text-center py-8">Loading teachers...</p>
-      </div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <input id="searchInput" type="text" placeholder="Search sessions, teachers or courses"
+            class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm w-full sm:w-64">
+          <button id="refreshBtn"
+            class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
+        </div>
+      </header>
+
+      <!-- Stats + Quick Actions -->
+      <section class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+        <div class="col-span-1 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Bookings Calendar</h3>
+          <div id="studentCalendarWrapper" class="w-full overflow-hidden">
+            <div id="studentCalendar"></div>
+          </div>
+        </div>
+        <div
+          class="col-span-1 xl:col-span-2 flex flex-col justify-between bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 text-center">
+            <div class="p-4 bg-white/5 rounded-xl">
+              <p class="text-gray-400 text-sm">Upcoming</p>
+              <p id="upcomingCount" class="text-2xl font-bold text-neonBlue">0</p>
+            </div>
+            <div class="p-4 bg-white/5 rounded-xl">
+              <p class="text-gray-400 text-sm">Pending</p>
+              <p id="pendingCount" class="text-2xl font-bold text-violetGlow">0</p>
+            </div>
+            <div class="p-4 bg-white/5 rounded-xl">
+              <p class="text-gray-400 text-sm">Messages</p>
+              <p id="messageCount" class="text-2xl font-bold text-emerald-400">0</p>
+            </div>
+          </div>
+          <div class="flex justify-between text-sm text-gray-400 mb-3">
+            <span>Quick Actions</span>
+          </div>
+          <div class="mt-auto flex">
+            <a href="#" class="flex-1 bg-white/5 py-2 rounded-lg text-center hover:bg-white/10 transition">Browse
+              Teachers</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- My Teachers Section -->
+      <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold">My Teachers</h3>
+            <p class="text-sm text-gray-400">Teachers from your enrolled courses</p>
+          </div>
+          <span class="text-xs px-3 py-1 bg-neonBlue/20 text-neonBlue rounded-full">
+            Quick Access
+          </span>
+        </div>
+        <div id="enrolledTeachersGrid" class="space-y-4">
+          <p class="text-gray-400 text-center py-8">Loading teachers...</p>
+        </div>
+      </section>
+
+      <!-- Sessions -->
+      <section class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+          <h3 class="text-xl font-semibold mb-4">Upcoming Sessions</h3>
+          <div id="upcomingGrid" class="space-y-4 text-sm"></div>
+        </div>
+        <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+          <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
+          <div id="requestsGrid" class="space-y-4 text-sm"></div>
+        </div>
+      </section>
+
+      <!-- Request Form -->
+      <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <h3 class="text-xl font-semibold mb-4">Request a Session</h3>
+        <p class="text-sm text-gray-400 mb-4">
+          💡 Tip: Click "Request Session" on any teacher card above to auto-fill their ID
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <input id="teacherIdInput" type="text" placeholder="Teacher ID"
+            class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+          <input id="courseIdInput" type="text" placeholder="Course ID (optional)"
+            class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+          <input id="sessionTimeInput" type="text" placeholder="Select date & time"
+            class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
+          <button id="requestBtn"
+            class="w-full sm:w-auto bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg font-semibold hover:opacity-90">Request
+            Session</button>
+        </div>
+      </section>
+
+      <!-- Enrolled Courses Section -->
+      <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+        <h3 class="text-xl font-semibold mb-4">My Enrolled Courses</h3>
+        <div id="enrolledCoursesGrid" class="space-y-4">
+          <!-- Enrolled courses will be dynamically rendered here -->
+        </div>
+      </section>
     </section>
 
-    <!-- Sessions -->
-    <section class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-        <h3 class="text-xl font-semibold mb-4">Upcoming Sessions</h3>
-        <div id="upcomingGrid" class="space-y-4 text-sm"></div>
-      </div>
-      <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-        <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
-        <div id="requestsGrid" class="space-y-4 text-sm"></div>
-      </div>
-    </section>
+    <!-- MATERIALS SECTION -->
+    <section id="materialsSection" class="hidden animate-fade">
+      <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h2 class="text-3xl font-semibold">My Course Materials</h2>
+          <p class="text-gray-400 text-sm">Access materials from your enrolled courses</p>
+        </div>
 
-    <!-- Request Form -->
-    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-      <h3 class="text-xl font-semibold mb-4">Request a Session</h3>
-      <p class="text-sm text-gray-400 mb-4">
-        💡 Tip: Click "Request Session" on any teacher card above to auto-fill their ID
-      </p>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <input id="teacherIdInput" type="text" placeholder="Teacher ID"
-          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
-        <input id="courseIdInput" type="text" placeholder="Course ID (optional)"
-          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
-        <input id="sessionTimeInput" type="text" placeholder="Select date & time"
-          class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">
-        <button id="requestBtn"
-          class="w-full sm:w-auto bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg font-semibold hover:opacity-90">Request
-          Session</button>
-      </div>
-    </section>
+        <!-- Course selector -->
+        <div>
+          <label for="studentCourseSelect" class="text-sm text-gray-400 mr-2">Select Course:</label>
+          <select id="studentCourseSelect" class="bg-white/10 border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow">
+            <option value="">-- Select a course --</option>
+          </select>
+        </div>
+      </header>
 
-    <!-- Enrolled Courses Section -->
-    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-      <h3 class="text-xl font-semibold mb-4">My Enrolled Courses</h3>
-      <div id="enrolledCoursesGrid" class="space-y-4">
-        <!-- Enrolled courses will be dynamically rendered here -->
+      <!-- Materials List -->
+      <div id="studentMaterialList" class="space-y-4">
+        <p class="text-gray-400 text-center py-8">Select a course to view materials</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="noMaterialsState" class="hidden text-center py-16">
+        <div class="text-6xl mb-4">📚</div>
+        <h3 class="text-2xl font-semibold mb-2">No Materials Yet</h3>
+        <p class="text-gray-400">Your teacher hasn't uploaded any materials for this course yet.</p>
       </div>
     </section>
 
@@ -186,6 +220,34 @@
       overlay.classList.add("hidden");
     });
   </script>
+
+  <script>
+    // Section navigation
+    document.querySelectorAll('aside nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Hide all sections
+        const overviewSection = document.getElementById('overviewSection');
+        const materialsSection = document.getElementById('materialsSection');
+        
+        if (overviewSection) overviewSection.classList.add('hidden');
+        if (materialsSection) materialsSection.classList.add('hidden');
+
+        // Show the selected section
+        const targetSection = btn.dataset.section + 'Section';
+        const target = document.getElementById(targetSection);
+        if (target) {
+          target.classList.remove('hidden');
+        }
+
+        // Update active button styling
+        document.querySelectorAll('aside nav button').forEach(b => {
+          b.classList.remove('bg-white/5', 'bg-violetGlow/20');
+        });
+        btn.classList.add('bg-white/5');
+      });
+    });
+  </script>
+  
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script type="module" src="../assets/js/student.js"></script>
