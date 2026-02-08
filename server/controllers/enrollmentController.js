@@ -1,3 +1,4 @@
+// File: server/controllers/enrollmentController.js
 import { db } from "../config/db.js";
 
 // POST /api/courses/:courseId/enroll
@@ -21,23 +22,31 @@ export const enrollCourse = (req, res) => {
 };
 
 // GET /api/enrollments/student/:studentId
+// UPDATED: Now includes teacher_id and teacher_email
 export const getStudentEnrollments = (req, res) => {
   const studentId = req.params.studentId;
 
   const query = `
     SELECT 
       e.id AS enrollment_id,
+      e.student_id,
+      e.course_id,
       e.package_name,
       e.price_paid,
       e.status,
       e.enrolled_at,
       c.id AS course_id,
       c.title AS course_title,
-      u.name AS teacher_name
+      c.description AS course_description,
+      c.teacher_id,
+      u.id AS teacher_id,
+      u.name AS teacher_name,
+      u.email AS teacher_email
     FROM enrollments e
     JOIN courses c ON e.course_id = c.id
     JOIN users u ON c.teacher_id = u.id
     WHERE e.student_id = ?
+    ORDER BY e.enrolled_at DESC
   `;
 
   db.query(query, [studentId], (err, results) => {
@@ -45,7 +54,6 @@ export const getStudentEnrollments = (req, res) => {
     res.json(results);
   });
 };
-
 
 // GET /api/enrollments/course/:courseId
 export const getCourseEnrollments = (req, res) => {

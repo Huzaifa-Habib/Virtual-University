@@ -1,204 +1,570 @@
-const serverUrl = "http://localhost:5000";
-const token = localStorage.getItem("token") || "";
+// File: client/assets/js/teacher.js
+// Modern, clean teacher dashboard implementation
 
-/* DOM Elements */
-const pendingGrid = document.getElementById("pendingGrid");
-const acceptedGrid = document.getElementById("acceptedGrid");
-const emptyState = document.getElementById("emptyState");
-const toastEl = document.getElementById("toast");
-const teacherNameEl = document.getElementById("teacherNameSidebar");
-const refreshBtn = document.getElementById("refreshBtn");
-const searchInput = document.getElementById("searchInput");
-const logoutBtn = document.getElementById("logoutBtn");
+/* ==================== CONFIGURATION ==================== */
+// Dynamically determine API base URL
+const API_BASE = (() => {
+  // Check if we're on a specific port (like :8080 client, :5000 server)
+  if (window.location.port === '8080' || window.location.hostname === 'localhost') {
+    return 'http://localhost:5000/api';
+  }
+  // Production - same domain
+  return '/api';
+})();
 
-/* Section Elements */
-const dashboardSection = document.getElementById("dashboardSection");
-const sessionsSection = document.getElementById("sessionsSection");
-const studentsSection = document.getElementById("studentsSection");
-const navItems = document.querySelectorAll(".nav-item");
+console.log('🔧 API Base URL:', API_BASE); // Debug log
 
-/* Initialization */
-teacherNameEl.textContent = localStorage.getItem("userName") || "Teacher";
-refreshBtn?.addEventListener("click", fetchBookings);
-logoutBtn?.addEventListener("click", logout);
-searchInput?.addEventListener("input", fetchBookings);
+const getToken = () => localStorage.getItem('token') || '';
+const getUserName = () => localStorage.getItem('userName') || 'Teacher';
 
-/* Sidebar navigation */
-navItems.forEach(btn => {
-  btn.addEventListener("click", () => {
-    navItems.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+/* ==================== DOM REFERENCES ==================== */
+const DOM = {
+  // Dashboard elements
+  pendingGrid: document.getElementById('pendingGrid'),
+  acceptedGrid: document.getElementById('acceptedGrid'),
+  emptyState: document.getElementById('emptyState'),
+  toast: document.getElementById('toast'),
+  teacherName: document.getElementById('teacherNameSidebar'),
+  refreshBtn: document.getElementById('refreshBtn'),
+  searchInput: document.getElementById('searchInput'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  
+  // Materials elements
+  courseSelect: document.getElementById('courseSelect'),
+  matTitle: document.getElementById('matTitle'),
+  matDesc: document.getElementById('matDesc'),
+  matFile: document.getElementById('matFile'),
+  matVideo: document.getElementById('matVideo'),
+  uploadBtn: document.getElementById('uploadMatBtn'),
+  materialList: document.getElementById('materialList'),
+  
+  // Sections
+  sections: {
+    dashboard: document.getElementById('dashboardSection'),
+    sessions: document.getElementById('sessionsSection'),
+    students: document.getElementById('studentsSection'),
+    materials: document.getElementById('materialsSection')
+  },
+  
+  navItems: document.querySelectorAll('aside nav button')
+};
 
-    dashboardSection.classList.add("hidden");
-    sessionsSection.classList.add("hidden");
-    studentsSection.classList.add("hidden");
+/* ==================== STATE MANAGEMENT ==================== */
+const state = {
+  bookings: [],
+  courses: [],
+  activeCourseId: localStorage.getItem('activeCourseId') || '',
+  currentSection: 'dashboard'
+};
 
-    if(btn.dataset.route === "dashboard") dashboardSection.classList.remove("hidden");
-    else if(btn.dataset.route === "sessions") {
-      sessionsSection.classList.remove("hidden");
-      fetchSessions();
+/* ==================== UTILITY FUNCTIONS ==================== */
+const utils = {
+  // Create headers for API requests
+  headers: (isFormData = false) => {
+    const headers = {};
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
     }
-    else if(btn.dataset.route === "students") {
-      studentsSection.classList.remove("hidden");
-      fetchStudents();
+    const token = getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-  });
-});
+    return headers;
+  },
 
-/* Helpers */
-function toast(msg, time = 3000){
-  toastEl.textContent = msg;
-  toastEl.classList.remove("hidden");
-  setTimeout(() => toastEl.classList.add("hidden"), time);
-}
+  // Escape HTML to prevent XSS
+  escapeHtml: (str) => {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
 
-function escapeHtml(str){
-  if(!str) return "";
-  return String(str).replace(/[&<>"'`=\/]/g, s =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[s])
-  );
-}
+  // Show toast notification
+  toast: (message, duration = 3000) => {
+    if (!DOM.toast) return;
+    DOM.toast.textContent = message;
+    DOM.toast.classList.remove('hidden');
+    setTimeout(() => DOM.toast.classList.add('hidden'), duration);
+  },
 
-let bookingsCache = [];
-function showEmptyIfNeeded(){
-  emptyState.classList.toggle("hidden", bookingsCache.length > 0);
-}
+  // Handle API errors
+  handleError: (error, context = 'Operation') => {
+    console.error(`${context} error:`, error);
+    const message = error.message || 'An error occurred';
+    utils.toast(`${context} failed: ${message}`);
+  },
 
-/* Fetch Bookings */
-async function fetchBookings(){
-  try {
-    pendingGrid.innerHTML = "<div class='card'>Loading…</div>";
-    acceptedGrid.innerHTML = "<div class='card'>Loading…</div>";
+  // Format date/time
+  formatDateTime: (dateStr, timeStr) => {
+    if (!dateStr) return 'TBD';
+    try {
+      const date = new Date(dateStr);
+      const formatted = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      return timeStr ? `${formatted} at ${timeStr}` : formatted;
+    } catch {
+      return dateStr;
+    }
+  }
+};
 
-    const res = await fetch(`${serverUrl}/api/bookings`, { headers: { Authorization: `Bearer ${token}` } });
-    if(!res.ok){
-      pendingGrid.innerHTML = `<div class="card">Failed to load bookings: ${res.status}</div>`;
-      acceptedGrid.innerHTML = "";
+/* ==================== API FUNCTIONS ==================== */
+const api = {
+  // Fetch all bookings
+  fetchBookings: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/bookings`, {
+        headers: utils.headers()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      state.bookings = Array.isArray(data) ? data : [];
+      return state.bookings;
+    } catch (error) {
+      utils.handleError(error, 'Fetch bookings');
+      return [];
+    }
+  },
+
+  // Accept a booking
+  acceptBooking: async (bookingId) => {
+    try {
+      const response = await fetch(`${API_BASE}/bookings/${bookingId}/accept`, {
+        method: 'POST',
+        headers: utils.headers()
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Accept failed');
+      }
+      
+      utils.toast('Booking accepted! Video room created.');
+      return true;
+    } catch (error) {
+      utils.handleError(error, 'Accept booking');
+      return false;
+    }
+  },
+
+  // Fetch teacher courses
+  fetchTeacherCourses: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/materials/teacher/courses`, {
+        headers: utils.headers()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      state.courses = Array.isArray(data) ? data : [];
+      return state.courses;
+    } catch (error) {
+      utils.handleError(error, 'Fetch courses');
+      return [];
+    }
+  },
+
+  // Fetch materials for a course
+  fetchMaterials: async (courseId) => {
+    try {
+      const response = await fetch(
+        `${API_BASE}/materials/teacher/courses/${courseId}/materials`,
+        { headers: utils.headers() }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      utils.handleError(error, 'Fetch materials');
+      return [];
+    }
+  },
+
+  // Upload material
+  uploadMaterial: async (courseId, formData) => {
+    try {
+      const response = await fetch(
+        `${API_BASE}/materials/teacher/courses/${courseId}/materials`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` }, // Only auth header for FormData
+          body: formData
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Upload failed');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      utils.handleError(error, 'Upload material');
+      return null;
+    }
+  }
+};
+
+/* ==================== UI RENDER FUNCTIONS ==================== */
+const render = {
+  // Render bookings on dashboard
+  bookings: (bookings) => {
+    const searchQuery = (DOM.searchInput?.value || '').toLowerCase().trim();
+    
+    // Filter bookings based on search
+    const filtered = bookings.filter(booking => {
+      if (!searchQuery) return true;
+      const searchText = [
+        booking.studentName,
+        booking.courseTitle,
+        booking.date,
+        booking.time
+      ].join(' ').toLowerCase();
+      return searchText.includes(searchQuery);
+    });
+
+    // Separate pending and accepted
+    const pending = filtered.filter(b => b.status === 'requested');
+    const accepted = filtered.filter(b => 
+      b.status === 'accepted' || b.status === 'confirmed'
+    );
+
+    // Render pending bookings
+    if (DOM.pendingGrid) {
+      DOM.pendingGrid.innerHTML = pending.length
+        ? pending.map(render.pendingCard).join('')
+        : '<div class="card">No pending requests.</div>';
+    }
+
+    // Render accepted bookings
+    if (DOM.acceptedGrid) {
+      DOM.acceptedGrid.innerHTML = accepted.length
+        ? accepted.map(render.acceptedCard).join('')
+        : '<div class="card">No accepted sessions.</div>';
+    }
+
+    // Show/hide empty state
+    if (DOM.emptyState) {
+      DOM.emptyState.classList.toggle('hidden', bookings.length > 0);
+    }
+  },
+
+  // Render pending booking card
+  pendingCard: (booking) => {
+    const { id, courseTitle, studentName, date, time } = booking;
+    return `
+      <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-violetGlow/50 transition animate-fade">
+        <h3 class="text-lg font-semibold mb-2">${utils.escapeHtml(courseTitle)}</h3>
+        <p class="text-gray-300 mb-1">
+          Student: <strong>${utils.escapeHtml(studentName)}</strong>
+        </p>
+        <p class="text-gray-400 text-sm mb-4">
+          ${utils.formatDateTime(date, time)}
+        </p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold">
+            Pending
+          </span>
+          <div class="flex-1"></div>
+          <button 
+            onclick="handleAcceptBooking(${id})"
+            class="px-4 py-2 bg-gradient-to-r from-violetGlow to-neonBlue rounded-lg text-sm font-semibold hover:opacity-90 transition">
+            Accept
+          </button>
+          <button 
+            onclick="handleViewDetails(${id})"
+            class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+            View
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  // Render accepted booking card
+  acceptedCard: (booking) => {
+    const { id, courseTitle, studentName, date, time } = booking;
+    return `
+      <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-neonBlue/50 transition animate-fade">
+        <h3 class="text-lg font-semibold mb-2">${utils.escapeHtml(courseTitle)}</h3>
+        <p class="text-gray-300 mb-1">
+          Student: <strong>${utils.escapeHtml(studentName)}</strong>
+        </p>
+        <p class="text-gray-400 text-sm mb-4">
+          ${utils.formatDateTime(date, time)}
+        </p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">
+            Accepted
+          </span>
+          <div class="flex-1"></div>
+          <button 
+            onclick="handleStartSession(${id})"
+            class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg text-sm font-semibold hover:opacity-90 transition">
+            Start Session
+          </button>
+          <button 
+            onclick="handleViewDetails(${id})"
+            class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+            Details
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  // Render course options
+  courseOptions: (courses) => {
+    if (!DOM.courseSelect) return;
+    
+    const options = courses.map(course => 
+      `<option value="${course.id}" ${course.id == state.activeCourseId ? 'selected' : ''}>
+        ${utils.escapeHtml(course.title)}
+      </option>`
+    ).join('');
+    
+    DOM.courseSelect.innerHTML = 
+      '<option value="">-- Select a course --</option>' + options;
+  },
+
+  // Render materials list
+  materials: (materials) => {
+    if (!DOM.materialList) return;
+    
+    if (!materials.length) {
+      DOM.materialList.innerHTML = 
+        '<p class="text-gray-400 text-center py-8">No materials uploaded yet</p>';
       return;
     }
 
-    const data = await res.json();
-    bookingsCache = Array.isArray(data) ? data : [];
-    renderBookings(bookingsCache);
-  } catch(err){
-    console.error(err);
-    pendingGrid.innerHTML = `<div class="card">Network error</div>`;
-    acceptedGrid.innerHTML = "";
+    DOM.materialList.innerHTML = materials.map(material => `
+      <div class="bg-glass border border-white/10 p-5 rounded-2xl hover:border-violetGlow/30 transition animate-fade">
+        <div class="flex justify-between items-start gap-4">
+          <div class="flex-1">
+            <h4 class="text-lg font-semibold mb-2">${utils.escapeHtml(material.title)}</h4>
+            <p class="text-gray-400 text-sm mb-3">${utils.escapeHtml(material.description || '')}</p>
+            <div class="flex gap-3 flex-wrap">
+              ${material.file_url ? 
+                `<a href="${material.file_url}" target="_blank" 
+                   class="text-violetGlow text-sm hover:underline flex items-center gap-1">
+                  📄 Download File
+                </a>` : ''}
+              ${material.video_url ? 
+                `<a href="${material.video_url}" target="_blank" 
+                   class="text-neonBlue text-sm hover:underline flex items-center gap-1">
+                  🎥 Watch Video
+                </a>` : ''}
+            </div>
+          </div>
+          <div class="text-gray-500 text-xs">
+            ${new Date(material.created_at).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+    `).join('');
   }
-}
-
-/* Render bookings */
-function renderBookings(list){
-  const q = (searchInput?.value || "").toLowerCase().trim();
-  const filtered = list.filter(b => {
-    if(!q) return true;
-    return `${b.studentName || ""} ${b.courseTitle || ""} ${b.date || ""} ${b.time || ""}`.toLowerCase().includes(q);
-  });
-
-  const pending = filtered.filter(b => b.status === "requested");
-  const accepted = filtered.filter(b => b.status === "accepted" || b.status === "confirmed");
-
-  pendingGrid.innerHTML = pending.length ? pending.map(cardPending).join("") : `<div class="card">No pending requests.</div>`;
-  acceptedGrid.innerHTML = accepted.length ? accepted.map(cardAccepted).join("") : `<div class="card">No accepted sessions.</div>`;
-
-  showEmptyIfNeeded();
-}
-
-/* Card templates */
-function cardPending(b){
-  return `
-    <div class="card">
-      <h3>${escapeHtml(b.courseTitle)}</h3>
-      <p>With <strong>${escapeHtml(b.studentName)}</strong></p>
-      <p class="muted">Date: ${escapeHtml(b.date)} | Time: ${escapeHtml(b.time)}</p>
-      <div class="actions">
-        <span class="pill pend">Pending</span>
-        <div style="flex:1"></div>
-        <button class="btn" onclick="acceptBooking(${b.id})">Accept & Generate Link</button>
-        <button class="btn secondary" onclick="viewDetails(${b.id})">View</button>
-      </div>
-    </div>
-  `;
-}
-
-function cardAccepted(b){
-  return `
-    <div class="card">
-      <h3>${escapeHtml(b.courseTitle)}</h3>
-      <p>With <strong>${escapeHtml(b.studentName)}</strong></p>
-      <p class="muted">Date: ${escapeHtml(b.date)} | Time: ${escapeHtml(b.time)}</p>
-      <div class="actions">
-        <span class="pill acc">Accepted</span>
-        <div style="flex:1"></div>
-        <button class="btn" onclick="startSession(${b.id})">Start Session</button>
-        <button class="btn secondary" onclick="viewDetails(${b.id})">Details</button>
-      </div>
-    </div>
-  `;
-}
-
-/* Accept booking */
-window.acceptBooking = async function(id){
-  if(!confirm("Accept this booking and generate the video link?")) return;
-  try {
-    const res = await fetch(`${serverUrl}/api/bookings/${id}/accept`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    });
-    if(!res.ok) return toast(`Accept failed: ${res.status}`);
-    toast("Booking accepted. Video room created!");
-    fetchBookings();
-  } catch(err){ console.error(err); toast("Network error during accept."); }
 };
 
-/* Start session */
-window.startSession = id => window.open(`${location.origin}/views/video.html?bookingId=${id}`, "_blank");
+/* ==================== EVENT HANDLERS ==================== */
+const handlers = {
+  // Load bookings
+  loadBookings: async () => {
+    if (DOM.pendingGrid) {
+      DOM.pendingGrid.innerHTML = '<div class="card animate-pulse">Loading bookings...</div>';
+    }
+    if (DOM.acceptedGrid) {
+      DOM.acceptedGrid.innerHTML = '<div class="card animate-pulse">Loading...</div>';
+    }
 
-/* View details */
-window.viewDetails = id => window.location.href = `${location.origin}/views/booking.html?id=${id}`;
+    const bookings = await api.fetchBookings();
+    render.bookings(bookings);
+  },
 
-/* Logout */
-function logout(){
-  localStorage.clear();
-  window.location.href = '/';
+  // Accept booking handler
+  acceptBooking: async (bookingId) => {
+    if (!confirm('Accept this booking and create a video room?')) return;
+    
+    const success = await api.acceptBooking(bookingId);
+    if (success) {
+      await handlers.loadBookings();
+    }
+  },
+
+  // Start session handler
+  startSession: (bookingId) => {
+    const url = `${window.location.origin}/views/video.html?bookingId=${bookingId}`;
+    window.open(url, '_blank');
+  },
+
+  // View details handler
+  viewDetails: (bookingId) => {
+    window.location.href = `${window.location.origin}/views/booking.html?id=${bookingId}`;
+  },
+
+  // Load courses
+  loadCourses: async () => {
+    if (DOM.courseSelect) {
+      DOM.courseSelect.innerHTML = '<option value="">Loading courses...</option>';
+    }
+
+    const courses = await api.fetchTeacherCourses();
+    render.courseOptions(courses);
+
+    // Load materials for active course if selected
+    if (state.activeCourseId && courses.length > 0) {
+      await handlers.loadMaterials(state.activeCourseId);
+    }
+  },
+
+  // Load materials for a course
+  loadMaterials: async (courseId) => {
+    if (!courseId) {
+      if (DOM.materialList) {
+        DOM.materialList.innerHTML = 
+          '<p class="text-gray-400 text-center py-8">Select a course to view materials</p>';
+      }
+      return;
+    }
+
+    if (DOM.materialList) {
+      DOM.materialList.innerHTML = '<p class="text-gray-400 animate-pulse">Loading materials...</p>';
+    }
+
+    const materials = await api.fetchMaterials(courseId);
+    render.materials(materials);
+  },
+
+  // Upload material handler
+  uploadMaterial: async () => {
+    const courseId = state.activeCourseId;
+    if (!courseId) {
+      utils.toast('Please select a course first');
+      return;
+    }
+
+    const title = DOM.matTitle?.value.trim();
+    if (!title) {
+      utils.toast('Please enter a title');
+      return;
+    }
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', DOM.matDesc?.value.trim() || '');
+    formData.append('video_url', DOM.matVideo?.value.trim() || '');
+    
+    if (DOM.matFile?.files?.[0]) {
+      formData.append('material_file', DOM.matFile.files[0]);
+    }
+
+    // Upload
+    const result = await api.uploadMaterial(courseId, formData);
+    
+    if (result) {
+      utils.toast('Material uploaded successfully!');
+      
+      // Clear form
+      if (DOM.matTitle) DOM.matTitle.value = '';
+      if (DOM.matDesc) DOM.matDesc.value = '';
+      if (DOM.matVideo) DOM.matVideo.value = '';
+      if (DOM.matFile) DOM.matFile.value = '';
+      
+      // Reload materials
+      await handlers.loadMaterials(courseId);
+    }
+  },
+
+  // Course selection change
+  courseChange: (event) => {
+    state.activeCourseId = event.target.value;
+    localStorage.setItem('activeCourseId', state.activeCourseId);
+    handlers.loadMaterials(state.activeCourseId);
+  },
+
+  // Section navigation
+  navigateSection: (sectionName) => {
+    // Hide all sections
+    Object.values(DOM.sections).forEach(section => {
+      if (section) section.classList.add('hidden');
+    });
+
+    // Show selected section
+    const selectedSection = DOM.sections[sectionName];
+    if (selectedSection) {
+      selectedSection.classList.remove('hidden');
+      state.currentSection = sectionName;
+
+      // Load section-specific data
+      if (sectionName === 'materials') {
+        handlers.loadCourses();
+      }
+    }
+  },
+
+  // Logout
+  logout: () => {
+    localStorage.clear();
+    window.location.href = '/';
+  }
+};
+
+/* ==================== INITIALIZATION ==================== */
+const init = () => {
+  // Set teacher name
+  if (DOM.teacherName) {
+    DOM.teacherName.textContent = getUserName();
+  }
+
+  // Attach event listeners
+  DOM.refreshBtn?.addEventListener('click', handlers.loadBookings);
+  DOM.searchInput?.addEventListener('input', () => render.bookings(state.bookings));
+  DOM.logoutBtn?.addEventListener('click', handlers.logout);
+  DOM.courseSelect?.addEventListener('change', handlers.courseChange);
+  DOM.uploadBtn?.addEventListener('click', handlers.uploadMaterial);
+
+  // Navigation
+  DOM.navItems.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      DOM.navItems.forEach(b => b.classList.remove('bg-white/5'));
+      btn.classList.add('bg-white/5');
+
+      // Navigate to section
+      const sectionName = btn.dataset.section?.replace('Section', '');
+      if (sectionName) {
+        handlers.navigateSection(sectionName);
+      }
+    });
+  });
+
+  // Load initial data
+  handlers.loadBookings();
+};
+
+/* ==================== GLOBAL FUNCTIONS (for onclick handlers) ==================== */
+window.handleAcceptBooking = handlers.acceptBooking;
+window.handleStartSession = handlers.startSession;
+window.handleViewDetails = handlers.viewDetails;
+
+/* ==================== START APPLICATION ==================== */
+// Wait for DOM to be fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
-
-/* Fetch My Sessions */
-async function fetchSessions(){
-  const grid = document.getElementById("sessionsGrid");
-  grid.innerHTML = "<div class='card'>Loading…</div>";
-  try{
-    const res = await fetch(`${serverUrl}/api/bookings`, { headers:{ Authorization: `Bearer ${token}` } });
-    if(!res.ok){ grid.innerHTML = `<div class="card">Failed to load sessions: ${res.status}</div>`; return; }
-    const data = await res.json();
-    grid.innerHTML = data.length ? data.map(b => `
-      <div class="card">
-        <h3>${escapeHtml(b.courseTitle)}</h3>
-        <p>With <strong>${escapeHtml(b.studentName)}</strong></p>
-        <p class="muted">Date: ${escapeHtml(b.date)} | Time: ${escapeHtml(b.time)}</p>
-        <span class="pill">${escapeHtml(b.status)}</span>
-      </div>
-    `).join("") : `<div class="card">No sessions found.</div>`;
-  }catch(err){ console.error(err); grid.innerHTML = `<div class="card">Network error</div>`; }
-}
-
-/* Fetch Students */
-async function fetchStudents(){
-  const grid = document.getElementById("studentsGrid");
-  grid.innerHTML = "<div class='card'>Loading…</div>";
-  try{
-    const res = await fetch(`${serverUrl}/api/students`, { headers:{ Authorization: `Bearer ${token}` } });
-    if(!res.ok){ grid.innerHTML = `<div class="card">Failed to load students: ${res.status}</div>`; return; }
-    const data = await res.json();
-    grid.innerHTML = data.length ? data.map(s => `
-      <div class="card">
-        <h3>${escapeHtml(s.name)}</h3>
-        <p>Email: ${escapeHtml(s.email)}</p>
-        <p>Role: ${escapeHtml(s.role)}</p>
-      </div>
-    `).join("") : `<div class="card">No students found.</div>`;
-  }catch(err){ console.error(err); grid.innerHTML = `<div class="card">Network error</div>`; }
-}
-
-/* Initial fetch */
-fetchBookings();

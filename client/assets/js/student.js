@@ -1,5 +1,5 @@
 // File: client/assets/js/student.js
-// Student Dashboard — shows enrolled courses + bookings + UI
+// Student Dashboard — shows enrolled courses + bookings + enrolled teachers + UI
 
 const API_BASE = window.API_BASE || "http://localhost:5000";
 
@@ -39,6 +39,7 @@ const courseIdInput = document.getElementById("courseIdInput");
 const sessionTimeInput = document.getElementById("sessionTimeInput");
 const requestBtn = document.getElementById("requestBtn");
 const enrolledCoursesGrid = document.getElementById("enrolledCoursesGrid");
+const enrolledTeachersGrid = document.getElementById("enrolledTeachersGrid");
 
 let bookedDates = [];
 
@@ -59,6 +60,157 @@ function toast(msg, ms = 3000) {
   toastEl.classList.remove("hidden");
   setTimeout(() => toastEl.classList.add("hidden"), ms);
 }
+
+/* === Load Enrolled Teachers === */
+async function loadEnrolledTeachers() {
+  try {
+    if (!studentId) {
+      console.warn("No student ID found in token");
+      if (enrolledTeachersGrid) {
+        enrolledTeachersGrid.innerHTML = `<p class="text-gray-400 text-center">Login required to view teachers.</p>`;
+      }
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/api/enrollments/student/${studentId}`, {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch enrollments");
+
+    const enrollments = await res.json();
+
+    if (!enrollments.length) {
+      if (enrolledTeachersGrid) {
+        enrolledTeachersGrid.innerHTML = `<p class="text-gray-400 text-center">You haven't enrolled in any courses yet.</p>`;
+      }
+      return;
+    }
+
+    // Extract unique teachers from enrollments
+    const teacherMap = new Map();
+    
+    for (const enrollment of enrollments) {
+      const teacherId = enrollment.teacher_id;
+      
+      if (!teacherMap.has(teacherId)) {
+        // Fetch teacher details
+        try {
+          const teacherRes = await fetch(`${API_BASE}/api/users/${teacherId}`, {
+            headers: headers(),
+          });
+          
+          if (teacherRes.ok) {
+            const teacherData = await teacherRes.json();
+            teacherMap.set(teacherId, {
+              id: teacherId,
+              name: teacherData.name || enrollment.teacher_name || 'Unknown Teacher',
+              email: teacherData.email || '',
+              bio: teacherData.bio || 'No bio available',
+              expertise: teacherData.expertise_tags || '',
+              courses: []
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to fetch teacher ${teacherId}:`, err);
+          // Fallback to enrollment data
+          teacherMap.set(teacherId, {
+            id: teacherId,
+            name: enrollment.teacher_name || 'Unknown Teacher',
+            email: '',
+            bio: 'No bio available',
+            expertise: '',
+            courses: []
+          });
+        }
+      }
+      
+      // Add course to teacher's course list
+      teacherMap.get(teacherId).courses.push({
+        title: enrollment.course_title,
+        package: enrollment.package_name,
+        status: enrollment.status
+      });
+    }
+
+    // Render teachers
+    if (enrolledTeachersGrid) {
+      enrolledTeachersGrid.innerHTML = Array.from(teacherMap.values())
+        .map(teacher => renderTeacherCard(teacher))
+        .join("");
+    }
+  } catch (err) {
+    console.error(err);
+    if (enrolledTeachersGrid) {
+      enrolledTeachersGrid.innerHTML = `<p class="text-center text-red-400">Failed to load teachers.</p>`;
+    }
+  }
+}
+
+/* === Render Teacher Card === */
+function renderTeacherCard(teacher) {
+  const coursesHtml = teacher.courses
+    .map(c => `<span class="text-xs px-2 py-1 bg-white/5 rounded-md">${c.title}</span>`)
+    .join(' ');
+    
+  return `
+    <div class="bg-white/5 p-6 rounded-xl border border-white/10 hover:bg-white/10 transition">
+      <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violetGlow to-neonBlue flex items-center justify-center text-white font-bold text-lg">
+              ${teacher.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h4 class="text-lg font-bold text-white">${esc(teacher.name)}</h4>
+              <p class="text-xs text-gray-400">Teacher ID: <span class="font-mono text-neonBlue">${teacher.id}</span></p>
+            </div>
+          </div>
+          
+          ${teacher.email ? `<p class="text-sm text-gray-400 mb-2">📧 ${esc(teacher.email)}</p>` : ''}
+          ${teacher.bio ? `<p class="text-sm text-gray-300 mb-3">${esc(teacher.bio)}</p>` : ''}
+          ${teacher.expertise ? `<p class="text-xs text-gray-400 mb-3">🎯 ${esc(teacher.expertise)}</p>` : ''}
+          
+          <div class="mb-3">
+            <p class="text-xs text-gray-400 mb-2">Your enrolled courses with this teacher:</p>
+            <div class="flex flex-wrap gap-2">
+              ${coursesHtml}
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button 
+            onclick="fillTeacherId('${teacher.id}')"
+            class="px-4 py-2 bg-gradient-to-r from-violetGlow to-neonBlue rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">
+            Request Session
+          </button>
+          <button 
+            onclick="viewTeacherProfile('${teacher.id}')"
+            class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 whitespace-nowrap">
+            View Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* === Helper Functions === */
+window.fillTeacherId = function(teacherId) {
+  if (teacherIdInput) {
+    teacherIdInput.value = teacherId;
+    // Scroll to request form
+    document.querySelector('#requestBtn').scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    });
+    toast(`Teacher ID ${teacherId} filled in request form`);
+  }
+};
+
+window.viewTeacherProfile = function(teacherId) {
+  window.location.href = `/views/mentor-profile.html?id=${teacherId}`;
+};
 
 /* === Load Enrolled Courses === */
 async function loadEnrolledCourses() {
@@ -87,8 +239,7 @@ async function loadEnrolledCourses() {
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition">
         <div>
           <h4 class="text-lg font-bold text-white">${e.course_title || 'Untitled Course'}</h4>
-<p class="text-gray-400 text-sm">By ${e.teacher_name || 'Unknown Teacher'}</p>
-
+          <p class="text-gray-400 text-sm">By ${e.teacher_name || 'Unknown Teacher'}</p>
           <p class="text-gray-200 text-sm">Package: ${e.package_name}</p>
           <p class="text-gray-200 text-sm">Price Paid: $${e.price_paid}</p>
           <p class="text-gray-400 text-xs mt-1">Enrolled on: ${new Date(
@@ -113,8 +264,6 @@ async function loadEnrolledCourses() {
     enrolledCoursesGrid.innerHTML = `<p class="text-center text-red-400">Failed to load enrolled courses.</p>`;
   }
 }
-
-loadEnrolledCourses();
 
 /* === Fetch Bookings === */
 async function fetchBookings() {
@@ -312,8 +461,6 @@ async function loadCalendarBookings() {
   }
 }
 
-loadCalendarBookings();
-
 /* === Calendar Setup === */
 flatpickr("#sessionTimeInput", {
   enableTime: true,
@@ -349,4 +496,7 @@ if (logoutBtn)
 if (requestBtn) requestBtn.addEventListener("click", requestBooking);
 
 /* === Initial Load === */
+loadCalendarBookings();
 fetchBookings();
+loadEnrolledCourses();
+loadEnrolledTeachers();

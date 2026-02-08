@@ -111,6 +111,22 @@
       </div>
     </section>
 
+    <!-- My Teachers Section (NEW) -->
+    <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-xl font-semibold">My Teachers</h3>
+          <p class="text-sm text-gray-400">Teachers from your enrolled courses</p>
+        </div>
+        <span class="text-xs px-3 py-1 bg-neonBlue/20 text-neonBlue rounded-full">
+          Quick Access
+        </span>
+      </div>
+      <div id="enrolledTeachersGrid" class="space-y-4">
+        <p class="text-gray-400 text-center py-8">Loading teachers...</p>
+      </div>
+    </section>
+
     <!-- Sessions -->
     <section class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
@@ -126,6 +142,9 @@
     <!-- Request Form -->
     <section class="mt-10 bg-glass p-6 rounded-2xl border border-white/10 backdrop-blur-md">
       <h3 class="text-xl font-semibold mb-4">Request a Session</h3>
+      <p class="text-sm text-gray-400 mb-4">
+        💡 Tip: Click "Request Session" on any teacher card above to auto-fill their ID
+      </p>
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <input id="teacherIdInput" type="text" placeholder="Teacher ID"
           class="w-full bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violetGlow">

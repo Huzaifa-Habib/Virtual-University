@@ -16,6 +16,13 @@ import videoRoutes from "./routes/videoRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import courseRoutes from './routes/courseRoutes.js';
 import enrollmentRoutes from './routes/enrollmentRoutes.js';
+import teacherMaterialsRoutes from "./routes/teacherMaterialsRoutes.js";
+import userRoutes from './routes/userRoutes.js';
+
+import path from "path";
+import { fileURLToPath } from "url";
+
+
 
 
 
@@ -23,8 +30,14 @@ import enrollmentRoutes from './routes/enrollmentRoutes.js';
 dotenv.config();
 
 const app = express();
+// fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 // Initialize tables
 createUserTable(db);
@@ -38,6 +51,9 @@ app.use("/api/video", videoRoutes);
 app.use("/api/students", protect, studentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
+app.use("/api", teacherMaterialsRoutes);
+app.use('/api/users', userRoutes)
+app.use('/api/materials', teacherMaterialsRoutes);
 
 
 

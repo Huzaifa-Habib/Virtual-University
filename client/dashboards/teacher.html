@@ -41,24 +41,35 @@
 <body class="h-full flex overflow-hidden">
 
   <!-- Sidebar -->
-  <aside id="sidebar" class="w-64 bg-glass backdrop-blur-md border-r border-white/10 flex flex-col justify-between p-4 fixed h-full transform -translate-x-full sm:translate-x-0 transition-transform z-50">
+  <aside id="sidebar"
+    class="w-64 bg-glass backdrop-blur-md border-r border-white/10 flex flex-col justify-between p-4 fixed h-full transform -translate-x-full sm:translate-x-0 transition-transform z-50">
     <div>
-      <h1 class="text-2xl font-bold mb-8 bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent">Virtual University</h1>
+      <h1 class="text-2xl font-bold mb-8 bg-gradient-to-r from-violetGlow to-neonBlue bg-clip-text text-transparent">
+        Virtual University</h1>
       <nav class="space-y-3">
-        <button class="block w-full text-left px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition" data-section="dashboardSection">Dashboard</button>
-        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition" data-section="sessionsSection">My Sessions</button>
-        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition" data-section="studentsSection">Students</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl bg-white/5 hover:bg-violetGlow/20 transition"
+          data-section="dashboardSection">Dashboard</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition"
+          data-section="sessionsSection">My Sessions</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition"
+          data-section="studentsSection">Students</button>
+        <button class="block w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition"
+          data-section="materialsSection">Course Management</button>
+
+
       </nav>
     </div>
     <div>
       <p id="teacherNameSidebar" class="text-sm text-gray-400 mb-1">Teacher</p>
       <p class="text-xs text-emerald-400">Active now</p>
-      <button id="logoutBtn" class="mt-3 w-full bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg text-sm font-semibold">Logout</button>
+      <button id="logoutBtn"
+        class="mt-3 w-full bg-gradient-to-r from-violetGlow to-neonBlue py-2 rounded-lg text-sm font-semibold">Logout</button>
     </div>
   </aside>
 
   <!-- Mobile sidebar toggle -->
-  <button id="mobileSidebarBtn" class="sm:hidden fixed top-4 left-4 z-50 bg-violetGlow/80 p-2 rounded-lg text-white">☰</button>
+  <button id="mobileSidebarBtn"
+    class="sm:hidden fixed top-4 left-4 z-50 bg-violetGlow/80 p-2 rounded-lg text-white">☰</button>
 
   <!-- Main Content -->
   <main class="flex-1 p-6 sm:ml-64 overflow-y-auto">
@@ -70,8 +81,10 @@
           <p class="text-gray-400 text-sm">Accept requests and start live sessions</p>
         </div>
         <div class="flex items-center gap-3">
-          <input id="searchInput" type="text" placeholder="Search bookings, students, courses..." class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm">
-          <button id="refreshBtn" class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
+          <input id="searchInput" type="text" placeholder="Search bookings, students, courses..."
+            class="bg-white/10 border border-white/10 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow text-sm">
+          <button id="refreshBtn"
+            class="px-4 py-2 rounded-lg bg-gradient-to-r from-violetGlow to-neonBlue text-white font-semibold hover:opacity-90">Refresh</button>
         </div>
       </header>
 
@@ -104,6 +117,42 @@
       <h2 class="text-2xl font-semibold mb-4">Students</h2>
       <div id="studentsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </section>
+
+   <!-- Materials Section -->
+<section id="materialsSection" class="hidden animate-fade mt-6">
+  <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+    <div>
+      <h2 class="text-3xl font-semibold">Course Materials</h2>
+      <p class="text-gray-400 text-sm">Upload PDFs, images, and video links</p>
+    </div>
+
+    <!-- Course selector -->
+    <div>
+      <label for="courseSelect" class="text-sm text-gray-400 mr-2">Select Course:</label>
+      <select id="courseSelect" class="bg-white/10 border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow">
+        <option value="">-- Select a course --</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="bg-glass border border-white/10 p-6 rounded-2xl mb-10 backdrop-blur-md">
+    <div class="grid gap-4">
+      <input id="matTitle" placeholder="Title" class="bg-white/10 border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow">
+      <textarea id="matDesc" placeholder="Description" class="bg-white/10 border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow"></textarea>
+      <input id="matFile" type="file" class="bg-white/10 border px-4 py-3 rounded-lg">
+      <input id="matVideo" placeholder="Video URL (optional)" class="bg-white/10 border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-violetGlow">
+      <button id="uploadMatBtn" class="bg-gradient-to-r from-violetGlow to-neonBlue px-5 py-3 rounded-xl font-semibold hover:opacity-90 transition">
+        Upload Material
+      </button>
+    </div>
+  </div>
+
+  <div id="materialList" class="space-y-4">
+    <p class="text-gray-400">Select a course to view materials</p>
+  </div>
+</section>
+
+
   </main>
 
   <!-- Toast -->
@@ -129,4 +178,5 @@
     });
   </script>
 </body>
+
 </html>
