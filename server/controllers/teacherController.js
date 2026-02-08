@@ -183,6 +183,8 @@ export const getTeacherProfile = (req, res) => {
  * Update teacher profile (name, bio, profile image)
  */
 export const updateTeacherProfile = (req, res) => {
+  console.log('Body:', req.body); // Check if bio is here
+  console.log('File:', req.file);
   const teacherId = req.user.id;
   const { name, bio } = req.body;
   const profileImageUrl = req.file ? `/uploads/avatars/${req.file.filename}` : null;
@@ -193,13 +195,13 @@ export const updateTeacherProfile = (req, res) => {
     WHERE id = ?
   `;
 
-  const updateTeacherQuery = `
-    INSERT INTO teachers (user_id, bio, profile_image_url)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE 
-      bio = VALUES(bio),
-      profile_image_url = COALESCE(VALUES(profile_image_url), profile_image_url)
-  `;
+ const updateTeacherQuery = `
+  INSERT INTO teachers (user_id, bio, profile_image_url)
+  VALUES (?, ?, ?)
+  ON DUPLICATE KEY UPDATE 
+    bio = COALESCE(VALUES(bio), bio),
+    profile_image_url = COALESCE(VALUES(profile_image_url), profile_image_url)
+`;
 
   db.query(updateUserQuery, [name || null, teacherId], (userErr) => {
     if (userErr) {

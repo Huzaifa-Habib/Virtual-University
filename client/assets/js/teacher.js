@@ -618,6 +618,7 @@ const render = {
     `).join('');
   },
   profile: (profileData) => {
+    console.log("Full Profile Data:", profileData); // CHECK THIS IN BROWSER CONSOLE
     if (!profileData?.profile) return;
     const { profile, courses, stats } = profileData;
     state.profile = profileData;
