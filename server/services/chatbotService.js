@@ -43,6 +43,53 @@ const sanitizeTokens = (prompt) =>
     .split(/\s+/)
     .filter((token) => token.length > 2);
 
+    const STOP_WORDS = new Set([
+  "which",
+  "what",
+  "best",
+  "mentor",
+  "mentors",
+  "teacher",
+  "teachers",
+  "course",
+  "courses",
+  "with",
+  "under",
+  "about",
+  "find",
+  "need",
+  "want",
+  "high",
+  "demand",
+  "tech",
+  "price",
+  "pricing",
+  "budget",
+  "learn",
+  "learning",
+  "recommend",
+  "suggest",
+  "student",
+  "students",
+  "program",
+  "track",
+  "for",
+  "the",
+  "and",
+  "your",
+  "can",
+  "you",
+]);
+
+const extractQueryTagsFromPrompt = (prompt) => {
+  const tokens = sanitizeTokens(prompt);
+  return tokens.filter((token) => !STOP_WORDS.has(token));
+};
+
+const isMentorQuery = (prompt) =>
+  /(mentor|teacher|instructor|coach)/i.test(String(prompt || ""));
+
+
 const extractBudget = (prompt) => {
   const match = String(prompt || "").match(/(\d{2,6})/);
   return match ? Number(match[1]) : null;
@@ -52,6 +99,7 @@ export const buildChatbotInsights = async ({ prompt }) => {
   const courses = await fetchCoursesWithPricing();
   const tokens = sanitizeTokens(prompt);
   const budget = extractBudget(prompt);
+  const queryTags = extractQueryTagsFromPrompt(prompt);
 
   const scoredCourses = courses.map((course) => {
     const haystack = `${course.title || ""} ${course.description || ""}`.toLowerCase();
@@ -91,17 +139,34 @@ export const buildChatbotInsights = async ({ prompt }) => {
     ? `${bestPriceCourse.title} starts at $${bestPriceCourse.priceValue}.`
     : "Ask about budgets and subscription options.";
 
-  const bestMentorText = rankedCourses[0]?.teacher_name
+  let bestMentorText = rankedCourses[0]?.teacher_name
     ? `Consider ${rankedCourses[0].teacher_name} for ${rankedCourses[0].title}.`
     : "We connect you with mentors aligned to goals.";
+    let mentorReply = "";
+
+  if (isMentorQuery(prompt) || queryTags.length) {
+    const rankedMentors = await rankMentors({ queryTags, limit: 3 });
+    if (rankedMentors.length) {
+      const topMentor = rankedMentors[0];
+      const tagText = topMentor.matched_tags?.length
+        ? ` (${topMentor.matched_tags.join(", ")})`
+        : "";
+      bestMentorText = `Top mentor: ${topMentor.name}${tagText}.`;
+      mentorReply = `I recommend ${topMentor.name}${tagText} based on mentor performance and expertise.`;
+    } else {
+      bestMentorText = "We are onboarding more mentors for that specialty.";
+    }
+  }
 
   const futureScopeText = topCourseNames.length
     ? `Roles tied to ${topCourseNames[0]} show strong hiring demand this semester.`
     : "We highlight demand, growth, and career tracks.";
 
-  const reply = topCourseNames.length
-    ? `Based on your goals, I recommend ${topCourseNames.join(", ")}.`
-    : "Tell me your interest area, budget, and timeline so I can recommend courses.";
+  const reply = mentorReply
+    ? mentorReply
+    : topCourseNames.length
+      ? `Based on your goals, I recommend ${topCourseNames.join(", ")}.`
+      : "Tell me your interest area, budget, and timeline so I can recommend courses.";
 
   return {
     reply,
