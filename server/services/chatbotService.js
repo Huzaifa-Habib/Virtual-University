@@ -14,6 +14,104 @@ const extractTags = (rawTags) =>
     .map((tag) => normalizeTag(String(tag)))
     .filter(Boolean);
 
+    const fetchCoursesWithPricing = () => {
+  const sql = `
+    SELECT
+      c.id,
+      c.title,
+      c.description,
+      u.name AS teacher_name,
+      MIN(cp.price) AS min_price
+    FROM courses c
+    LEFT JOIN users u ON c.teacher_id = u.id
+    LEFT JOIN course_packages cp ON cp.course_id = c.id
+    GROUP BY c.id, c.title, c.description, u.name
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(sql, (err, results) => {
+      if (err) return reject(err);
+      resolve(results || []);
+    });
+  });
+};
+
+const sanitizeTokens = (prompt) =>
+  String(prompt || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 2);
+
+const extractBudget = (prompt) => {
+  const match = String(prompt || "").match(/(\d{2,6})/);
+  return match ? Number(match[1]) : null;
+};
+
+export const buildChatbotInsights = async ({ prompt }) => {
+  const courses = await fetchCoursesWithPricing();
+  const tokens = sanitizeTokens(prompt);
+  const budget = extractBudget(prompt);
+
+  const scoredCourses = courses.map((course) => {
+    const haystack = `${course.title || ""} ${course.description || ""}`.toLowerCase();
+    const matchCount = tokens.reduce(
+      (count, token) => (haystack.includes(token) ? count + 1 : count),
+      0
+    );
+    const priceValue = Number(course.min_price) || 0;
+    const budgetScore = budget && priceValue ? (priceValue <= budget ? 1 : -1) : 0;
+    const score = matchCount * 2 + budgetScore;
+
+    return {
+      ...course,
+      score,
+      priceValue,
+    };
+  });
+
+  const filteredCourses = budget
+    ? scoredCourses.filter((course) => course.priceValue && course.priceValue <= budget)
+    : scoredCourses;
+
+  const rankedCourses = (filteredCourses.length ? filteredCourses : scoredCourses)
+    .sort((a, b) => b.score - a.score || a.priceValue - b.priceValue)
+    .slice(0, 3);
+
+  const topCourseNames = rankedCourses.map((course) => course.title).filter(Boolean);
+  const topCoursesText = topCourseNames.length
+    ? topCourseNames.join(", ")
+    : "Share your goals to see the best match.";
+
+  const bestPriceCourse = rankedCourses
+    .filter((course) => course.priceValue)
+    .sort((a, b) => a.priceValue - b.priceValue)[0];
+
+  const bestPricingText = bestPriceCourse
+    ? `${bestPriceCourse.title} starts at $${bestPriceCourse.priceValue}.`
+    : "Ask about budgets and subscription options.";
+
+  const bestMentorText = rankedCourses[0]?.teacher_name
+    ? `Consider ${rankedCourses[0].teacher_name} for ${rankedCourses[0].title}.`
+    : "We connect you with mentors aligned to goals.";
+
+  const futureScopeText = topCourseNames.length
+    ? `Roles tied to ${topCourseNames[0]} show strong hiring demand this semester.`
+    : "We highlight demand, growth, and career tracks.";
+
+  const reply = topCourseNames.length
+    ? `Based on your goals, I recommend ${topCourseNames.join(", ")}.`
+    : "Tell me your interest area, budget, and timeline so I can recommend courses.";
+
+  return {
+    reply,
+    topCourses: topCoursesText,
+    futureScope: futureScopeText,
+    bestPricing: bestPricingText,
+    bestMentor: bestMentorText,
+  };
+};
+
 const fetchTeacherMetrics = () => {
   const sql = `
     SELECT

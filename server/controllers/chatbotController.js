@@ -1,5 +1,19 @@
-import { rankMentors } from "../services/chatbotService.js";
+import { buildChatbotInsights, rankMentors } from "../services/chatbotService.js";
 
+export const getChatbotInsights = async (req, res) => {
+  try {
+    const { prompt } = req.body || {};
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ message: "Prompt is required." });
+    }
+
+    const insights = await buildChatbotInsights({ prompt });
+    res.json(insights);
+  } catch (error) {
+    console.error("Error generating chatbot insights:", error);
+    res.status(500).json({ message: "Failed to generate chatbot insights" });
+  }
+};
 export const getMentorRecommendations = async (req, res) => {
   try {
     const { tags, limit } = req.body || {};
