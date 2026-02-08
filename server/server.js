@@ -22,13 +22,23 @@ import userRoutes from './routes/userRoutes.js';
 
 import path from "path";
 import { fileURLToPath } from "url";
-
+import fs from "fs";
 dotenv.config();
 
 const app = express();
 // fix __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const uploadsDir = path.join(__dirname, "uploads");
+const avatarsDir = path.join(uploadsDir, "avatars");
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir);
+}
 
 app.use(cors());
 app.use(express.json());

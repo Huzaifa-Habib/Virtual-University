@@ -122,13 +122,27 @@ export const getTeacherProfile = (req, res) => {
       u.email,
       u.created_at,
       t.bio,
+      t.profile_image_url,
       t.expertise_tags,
       t.verification_status
     FROM users u
     LEFT JOIN teachers t ON u.id = t.user_id
     WHERE u.id = ? AND u.role = 'teacher'
   `;
+  
 
+  const coursesQuery = `
+    SELECT 
+      c.id,
+      c.title,
+      c.description,
+      COUNT(DISTINCT e.id) as student_count
+    FROM courses c
+    LEFT JOIN enrollments e ON c.id = e.course_id AND e.status = 'paid'
+    WHERE c.teacher_id = ?
+    GROUP BY c.id, c.title, c.description
+    ORDER BY c.title ASC
+  `;
   db.query(query, [teacherId], (err, results) => {
     if (err) {
       console.error('Error fetching teacher profile:', err);
@@ -139,6 +153,76 @@ export const getTeacherProfile = (req, res) => {
       return res.status(404).json({ message: 'Teacher not found' });
     }
 
-    res.json(results[0]);
+    const profile = results[0];
+
+    db.query(coursesQuery, [teacherId], (coursesErr, courses) => {
+      if (coursesErr) {
+        console.error('Error fetching teacher courses:', coursesErr);
+        return res.status(500).json({ message: 'Database error', error: coursesErr.message });
+      }
+
+      const totalStudents = (courses || []).reduce(
+        (sum, course) => sum + (course.student_count || 0),
+        0
+      );
+
+      res.json({
+        profile,
+        courses: courses || [],
+        stats: {
+          totalCourses: (courses || []).length,
+          totalStudents
+        }
+      });
+    });
   });
+};
+
+/**
+ * PUT /api/teachers/profile
+ * Update teacher profile (name, bio, profile image)
+ */
+export const updateTeacherProfile = (req, res) => {
+  const teacherId = req.user.id;
+  const { name, bio } = req.body;
+  const profileImageUrl = req.file ? `/uploads/avatars/${req.file.filename}` : null;
+
+  const updateUserQuery = `
+    UPDATE users 
+    SET name = COALESCE(?, name)
+    WHERE id = ?
+  `;
+
+  const updateTeacherQuery = `
+    INSERT INTO teachers (user_id, bio, profile_image_url)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE 
+      bio = VALUES(bio),
+      profile_image_url = COALESCE(VALUES(profile_image_url), profile_image_url)
+  `;
+
+  db.query(updateUserQuery, [name || null, teacherId], (userErr) => {
+    if (userErr) {
+      console.error('Error updating teacher name:', userErr);
+      return res.status(500).json({ message: 'Failed to update teacher name' });
+    }
+
+    db.query(updateTeacherQuery, [teacherId, bio || null, profileImageUrl], (teacherErr) => {
+      if (teacherErr) {
+        console.error('Error updating teacher profile:', teacherErr);
+        return res.status(500).json({ message: 'Failed to update teacher profile' });
+      }
+
+      res.json({
+        message: 'Profile updated successfully',
+        profile: {
+          id: teacherId,
+          name,
+          bio,
+          profile_image_url: profileImageUrl
+        }
+      });
+    });
+  });
+  
 };

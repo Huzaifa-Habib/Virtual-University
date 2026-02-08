@@ -16,6 +16,14 @@ console.log('🔧 API Base URL:', API_BASE); // Debug log
 
 const getToken = () => localStorage.getItem('token') || '';
 const getUserName = () => localStorage.getItem('userName') || 'Teacher';
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (error) {
+    console.error('Invalid token', error);
+    return null;
+  }
+};
 
 /* ==================== DOM REFERENCES ==================== */
 const DOM = {
@@ -27,6 +35,8 @@ const DOM = {
   emptyState: document.getElementById('emptyState'),
   toast: document.getElementById('toast'),
   teacherName: document.getElementById('teacherNameSidebar'),
+  teacherAvatar: document.getElementById('teacherAvatarSidebar'),
+  profileBtn: document.getElementById('profileBtn'),
   refreshBtn: document.getElementById('refreshBtn'),
   searchInput: document.getElementById('searchInput'),
   logoutBtn: document.getElementById('logoutBtn'),
@@ -40,16 +50,31 @@ const DOM = {
   uploadBtn: document.getElementById('uploadMatBtn'),
   materialList: document.getElementById('materialList'),
   
+  // Profile elements
+  profileAvatarPreview: document.getElementById('profileAvatarPreview'),
+  profileImageInput: document.getElementById('profileImageInput'),
+  profileNameInput: document.getElementById('profileNameInput'),
+  profileBioInput: document.getElementById('profileBioInput'),
+  saveProfileBtn: document.getElementById('saveProfileBtn'),
+  profileNameHeading: document.getElementById('profileNameHeading'),
+  profileRoleHeading: document.getElementById('profileRoleHeading'),
+  profileEmail: document.getElementById('profileEmail'),
+  profileJoined: document.getElementById('profileJoined'),
+  profileCourseCount: document.getElementById('profileCourseCount'),
+  profileStudentCount: document.getElementById('profileStudentCount'),
+  profileCoursesList: document.getElementById('profileCoursesList'),
   // Sections
   sections: {
     dashboard: document.getElementById('dashboardSection'),
     sessions: document.getElementById('sessionsSection'),
     students: document.getElementById('studentsSection'),
-    materials: document.getElementById('materialsSection')
+    materials: document.getElementById('materialsSection'),
+    profile: document.getElementById('profileSection')
   },
   
   navItems: document.querySelectorAll('aside nav button')
 };
+
 
 /* ==================== STATE MANAGEMENT ==================== */
 const state = {
@@ -57,7 +82,12 @@ const state = {
   students: [],
   courses: [],
   activeCourseId: localStorage.getItem('activeCourseId') || '',
-  currentSection: 'dashboard'
+  currentSection: 'dashboard',
+  teacherId: (() => {
+    const decoded = parseJwt(getToken());
+    return decoded?.id || null;
+  })(),
+  profile: null
 };
 
 /* ==================== UTILITY FUNCTIONS ==================== */
@@ -257,6 +287,41 @@ const api = {
       return await response.json();
     } catch (error) {
       utils.handleError(error, 'Upload material');
+      return null;
+    }
+  },
+  fetchTeacherProfile: async (teacherId) => {
+    try {
+      const response = await fetch(`${API_BASE}/teachers/${teacherId}/profile`, {
+        headers: utils.headers()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      utils.handleError(error, 'Fetch profile');
+      return null;
+    }
+  },
+  updateTeacherProfile: async (formData) => {
+    try {
+      const response = await fetch(`${API_BASE}/teachers/profile`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Update failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      utils.handleError(error, 'Update profile');
       return null;
     }
   }
@@ -551,6 +616,72 @@ const render = {
         </div>
       </div>
     `).join('');
+  },
+  profile: (profileData) => {
+    if (!profileData?.profile) return;
+    const { profile, courses, stats } = profileData;
+    state.profile = profileData;
+
+    if (DOM.teacherName) {
+      DOM.teacherName.textContent = profile.name || getUserName();
+    }
+    if (DOM.profileNameHeading) {
+      DOM.profileNameHeading.textContent = profile.name || 'Teacher';
+    }
+    if (DOM.profileRoleHeading) {
+      DOM.profileRoleHeading.textContent = 'Mentor • Virtual University';
+    }
+    if (DOM.profileNameInput) {
+      DOM.profileNameInput.value = profile.name || '';
+    }
+    if (DOM.profileBioInput) {
+      DOM.profileBioInput.value = profile.bio || '';
+    }
+    if (DOM.profileEmail) {
+      DOM.profileEmail.textContent = profile.email || '--';
+    }
+    if (DOM.profileJoined) {
+      DOM.profileJoined.textContent = profile.created_at
+        ? new Date(profile.created_at).toLocaleDateString()
+        : '--';
+    }
+    if (DOM.profileCourseCount) {
+      DOM.profileCourseCount.textContent = stats?.totalCourses ?? (courses?.length || 0);
+    }
+    if (DOM.profileStudentCount) {
+      DOM.profileStudentCount.textContent = stats?.totalStudents ?? 0;
+    }
+
+    const avatarUrl = profile.profile_image_url 
+    ? `http://localhost:5000${profile.profile_image_url}` 
+    : '../assets/images/icon.png';
+    if (DOM.profileAvatarPreview) {
+      DOM.profileAvatarPreview.src = avatarUrl;
+    }
+    if (DOM.teacherAvatar) {
+      DOM.teacherAvatar.src = avatarUrl;
+    }
+
+    if (DOM.profileCoursesList) {
+      if (!courses?.length) {
+        DOM.profileCoursesList.innerHTML = '<p class="text-gray-400">No courses found.</p>';
+      } else {
+        DOM.profileCoursesList.innerHTML = courses.map(course => `
+          <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-lg font-semibold">${utils.escapeHtml(course.title)}</h4>
+                <p class="text-xs text-gray-400">${utils.escapeHtml(course.description || 'No description')}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-400">Students</p>
+                <p class="text-xl font-semibold text-neonBlue">${course.student_count || 0}</p>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
   }
 };
 
@@ -714,7 +845,39 @@ const handlers = {
       await handlers.loadMaterials(courseId);
     }
   },
+  loadProfile: async () => {
+    if (!state.teacherId) {
+      utils.toast('Unable to load profile');
+      return;
+    }
+    const profileData = await api.fetchTeacherProfile(state.teacherId);
+    if (profileData) {
+      render.profile(profileData);
+    }
+  },
+  updateProfile: async () => {
+    const name = DOM.profileNameInput?.value.trim();
+    const bio = DOM.profileBioInput?.value.trim();
 
+    if (!name) {
+      utils.toast('Please enter your name');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('bio', bio || '');
+    if (DOM.profileImageInput?.files?.[0]) {
+      formData.append('profile_image', DOM.profileImageInput.files[0]);
+    }
+
+    const result = await api.updateTeacherProfile(formData);
+    if (result?.profile) {
+      localStorage.setItem('userName', name);
+      utils.toast('Profile updated successfully');
+      await handlers.loadProfile();
+    }
+  },
   // Course selection change
   courseChange: (event) => {
     state.activeCourseId = event.target.value;
@@ -745,6 +908,9 @@ const handlers = {
       if (sectionName === 'students') {
         handlers.loadStudents();
       }
+      if (sectionName === 'profile') {
+        handlers.loadProfile();
+      }
     }
   },
 
@@ -768,6 +934,14 @@ const init = () => {
   DOM.logoutBtn?.addEventListener('click', handlers.logout);
   DOM.courseSelect?.addEventListener('change', handlers.courseChange);
   DOM.uploadBtn?.addEventListener('click', handlers.uploadMaterial);
+  DOM.saveProfileBtn?.addEventListener('click', handlers.updateProfile);
+  DOM.profileBtn?.addEventListener('click', () => handlers.navigateSection('profile'));
+  DOM.profileImageInput?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (file && DOM.profileAvatarPreview) {
+      DOM.profileAvatarPreview.src = URL.createObjectURL(file);
+    }
+  });
 
   // Navigation
   DOM.navItems.forEach(btn => {

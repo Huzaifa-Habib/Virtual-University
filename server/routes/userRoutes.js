@@ -34,7 +34,7 @@ router.get('/:id', authenticateToken, (req, res) => {
     // If user is a teacher, get additional teacher info
     if (user.role === 'teacher') {
       const teacherQuery = `
-        SELECT bio, expertise_tags, verification_status 
+        SELECT bio, expertise_tags, verification_status, profile_image_url 
         FROM teachers 
         WHERE user_id = ?
       `;
@@ -51,6 +51,7 @@ router.get('/:id', authenticateToken, (req, res) => {
           user.bio = teacher.bio;
           user.expertise_tags = teacher.expertise_tags;
           user.verification_status = teacher.verification_status;
+          user.profile_image_url = teacher.profile_image_url;
         }
 
         res.json(user);
