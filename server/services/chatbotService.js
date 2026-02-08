@@ -1,260 +1,457 @@
 import { db } from "../config/db.js";
+import { promisify } from "util";
 
-const normalizeTag = (tag) => tag.trim().toLowerCase();
+const query = promisify(db.query).bind(db);
 
-const parseTags = (tags) => {
-  if (!tags) return [];
-  if (Array.isArray(tags)) return tags.map((tag) => String(tag));
-  if (typeof tags === "string") return tags.split(",");
+/**
+ * Flexible chatbot service that adapts to your actual database structure
+ */
+
+// Query classification patterns
+const queryPatterns = {
+  course: /course|program|class|learn|study|training/i,
+  mentor: /mentor|teacher|instructor|tutor|coach/i,
+  pricing: /price|cost|fee|budget|cheap|expensive|afford/i,
+  career: /career|job|salary|employment|future|demand|outlook/i,
+  recommendation: /recommend|suggest|best|top|good/i,
+  aiml: /ai|ml|machine learning|artificial intelligence|data science/i,
+  tech: /tech|technology|programming|software|development/i,
+  budget: /\$\d+|under \d+|less than \d+|budget/i,
+};
+
+/**
+ * Classify the user's query intent
+ */
+function classifyQuery(prompt) {
+  const lowercasePrompt = prompt.toLowerCase();
+  const intents = [];
+
+  if (queryPatterns.course.test(lowercasePrompt)) intents.push("course");
+  if (queryPatterns.mentor.test(lowercasePrompt)) intents.push("mentor");
+  if (queryPatterns.pricing.test(lowercasePrompt)) intents.push("pricing");
+  if (queryPatterns.career.test(lowercasePrompt)) intents.push("career");
+  if (queryPatterns.recommendation.test(lowercasePrompt)) intents.push("recommendation");
+  if (queryPatterns.aiml.test(lowercasePrompt)) intents.push("aiml");
+  if (queryPatterns.tech.test(lowercasePrompt)) intents.push("tech");
+
+  // Extract budget if mentioned
+  const budgetMatch = lowercasePrompt.match(/\$?(\d+)/);
+  const budget = budgetMatch ? parseInt(budgetMatch[1]) : null;
+
+  return { intents, budget, originalPrompt: prompt };
+}
+
+/**
+ * Flexible fetch - tries different column name variations
+ */
+async function getAllCourses() {
+  // Try different common column name patterns
+  const queries = [
+    // Pattern 1: Standard naming with course_id
+    `SELECT 
+      course_id as id,
+      course_name as name,
+      category,
+      description,
+      price
+    FROM courses
+    LIMIT 100`,
+    
+    // Pattern 2: Just 'id' instead of 'course_id'
+    `SELECT 
+      id,
+      course_name as name,
+      category,
+      description,
+      price
+    FROM courses
+    LIMIT 100`,
+    
+    // Pattern 3: 'name' instead of 'course_name'
+    `SELECT 
+      id,
+      name,
+      category,
+      description,
+      price
+    FROM courses
+    LIMIT 100`,
+    
+    // Pattern 4: 'title' instead of 'course_name'
+    `SELECT 
+      id,
+      title as name,
+      category,
+      description,
+      price
+    FROM courses
+    LIMIT 100`,
+  ];
+
+  for (const sql of queries) {
+    try {
+      const courses = await query(sql);
+      console.log(`✅ Fetched ${courses.length} courses`);
+      return courses || [];
+    } catch (error) {
+      // Try next pattern
+      continue;
+    }
+  }
+  
+  console.error("❌ Could not fetch courses with any column pattern");
   return [];
-};
+}
 
-const extractTags = (rawTags) =>
-  parseTags(rawTags)
-    .map((tag) => normalizeTag(String(tag)))
-    .filter(Boolean);
+/**
+ * Flexible mentor fetch
+ */
+async function getAllMentors() {
+  const queries = [
+    // Pattern 1: Standard with user_id
+    `SELECT 
+      user_id as id,
+      username as name,
+      email,
+      specialization,
+      bio,
+      hourly_rate,
+      rating,
+      total_reviews
+    FROM users
+    WHERE role = 'teacher'
+    ORDER BY rating DESC
+    LIMIT 100`,
+    
+    // Pattern 2: Just 'id'
+    `SELECT 
+      id,
+      username as name,
+      email,
+      specialization,
+      bio,
+      hourly_rate,
+      rating,
+      total_reviews
+    FROM users
+    WHERE role = 'teacher'
+    ORDER BY rating DESC
+    LIMIT 100`,
+    
+    // Pattern 3: 'name' instead of 'username'
+    `SELECT 
+      id,
+      name,
+      email,
+      specialization,
+      bio,
+      hourly_rate,
+      rating,
+      total_reviews
+    FROM users
+    WHERE role = 'teacher'
+    ORDER BY rating DESC
+    LIMIT 100`,
 
-    const fetchCoursesWithPricing = () => {
-  const sql = `
-    SELECT
-      c.id,
-      c.title,
-      c.description,
-      u.name AS teacher_name,
-      MIN(cp.price) AS min_price
-    FROM courses c
-    LEFT JOIN users u ON c.teacher_id = u.id
-    LEFT JOIN course_packages cp ON cp.course_id = c.id
-    GROUP BY c.id, c.title, c.description, u.name
-  `;
+    // Pattern 4: Without rating/reviews (for basic tables)
+    `SELECT 
+      id,
+      username as name,
+      email,
+      specialization,
+      bio,
+      hourly_rate,
+      0 as rating,
+      0 as total_reviews
+    FROM users
+    WHERE role = 'teacher'
+    LIMIT 100`,
 
-  return new Promise((resolve, reject) => {
-    db.query(sql, (err, results) => {
-      if (err) return reject(err);
-      resolve(results || []);
+    // Pattern 5: Most basic - just id and name
+    `SELECT 
+      id,
+      username as name,
+      email,
+      '' as specialization,
+      '' as bio,
+      0 as hourly_rate,
+      0 as rating,
+      0 as total_reviews
+    FROM users
+    WHERE role = 'teacher'
+    LIMIT 100`,
+  ];
+
+  for (const sql of queries) {
+    try {
+      const mentors = await query(sql);
+      console.log(`✅ Fetched ${mentors.length} mentors`);
+      return mentors || [];
+    } catch (error) {
+      continue;
+    }
+  }
+  
+  console.error("❌ Could not fetch mentors with any column pattern");
+  return [];
+}
+
+/**
+ * Filter courses based on query parameters
+ */
+function filterCourses(courses, { intents, budget }) {
+  let filtered = [...courses];
+
+  // Filter by budget
+  if (budget && filtered.length > 0) {
+    filtered = filtered.filter(c => {
+      const coursePrice = c.price || 0;
+      return coursePrice <= budget;
     });
+  }
+
+  // Filter by AI/ML focus
+  if (intents.includes("aiml") && filtered.length > 0) {
+    filtered = filtered.filter(c => {
+      const searchText = `${c.name || ''} ${c.description || ''} ${c.category || ''}`.toLowerCase();
+      return searchText.includes("ai") || 
+             searchText.includes("ml") || 
+             searchText.includes("machine learning") ||
+             searchText.includes("artificial intelligence") ||
+             searchText.includes("data science");
+    });
+  }
+
+  // Filter by tech focus
+  if (intents.includes("tech") && !intents.includes("aiml") && filtered.length > 0) {
+    filtered = filtered.filter(c => {
+      const searchText = `${c.name || ''} ${c.category || ''}`.toLowerCase();
+      return searchText.includes("tech") || 
+             searchText.includes("programming") ||
+             searchText.includes("software") ||
+             searchText.includes("development");
+    });
+  }
+
+  // Sort by price (cheapest first) if we have prices
+  if (filtered.length > 0) {
+    filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+  }
+
+  return filtered;
+}
+
+/**
+ * Analyze mentors based on query
+ */
+function analyzeMentors(mentors, { intents }) {
+  if (!mentors || mentors.length === 0) return [];
+  
+  // Sort by rating and experience
+  const sorted = [...mentors].sort((a, b) => {
+    const scoreA = (a.rating || 0) * (a.total_reviews || 1);
+    const scoreB = (b.rating || 0) * (b.total_reviews || 1);
+    return scoreB - scoreA;
   });
-};
 
-const sanitizeTokens = (prompt) =>
-  String(prompt || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((token) => token.length > 2);
+  return sorted;
+}
 
-    const STOP_WORDS = new Set([
-  "which",
-  "what",
-  "best",
-  "mentor",
-  "mentors",
-  "teacher",
-  "teachers",
-  "course",
-  "courses",
-  "with",
-  "under",
-  "about",
-  "find",
-  "need",
-  "want",
-  "high",
-  "demand",
-  "tech",
-  "price",
-  "pricing",
-  "budget",
-  "learn",
-  "learning",
-  "recommend",
-  "suggest",
-  "student",
-  "students",
-  "program",
-  "track",
-  "for",
-  "the",
-  "and",
-  "your",
-  "can",
-  "you",
-]);
+/**
+ * Generate intelligent response based on analysis
+ */
+function generateResponse(queryData, courses, mentors) {
+  const { intents, budget, originalPrompt } = queryData;
+  
+  let response = "";
+  let recommendedCourses = [];
+  let recommendedMentors = [];
 
-const extractQueryTagsFromPrompt = (prompt) => {
-  const tokens = sanitizeTokens(prompt);
-  return tokens.filter((token) => !STOP_WORDS.has(token));
-};
-
-const isMentorQuery = (prompt) =>
-  /(mentor|teacher|instructor|coach)/i.test(String(prompt || ""));
-
-
-const extractBudget = (prompt) => {
-  const match = String(prompt || "").match(/(\d{2,6})/);
-  return match ? Number(match[1]) : null;
-};
-
-export const buildChatbotInsights = async ({ prompt }) => {
-  const courses = await fetchCoursesWithPricing();
-  const tokens = sanitizeTokens(prompt);
-  const budget = extractBudget(prompt);
-  const queryTags = extractQueryTagsFromPrompt(prompt);
-
-  const scoredCourses = courses.map((course) => {
-    const haystack = `${course.title || ""} ${course.description || ""}`.toLowerCase();
-    const matchCount = tokens.reduce(
-      (count, token) => (haystack.includes(token) ? count + 1 : count),
-      0
-    );
-    const priceValue = Number(course.min_price) || 0;
-    const budgetScore = budget && priceValue ? (priceValue <= budget ? 1 : -1) : 0;
-    const score = matchCount * 2 + budgetScore;
-
+  // Check if we have data
+  if (!courses || courses.length === 0) {
     return {
-      ...course,
-      score,
-      priceValue,
+      response: `⚠️ I couldn't find any courses in the database.\n\n` +
+               `**To fix this:**\n` +
+               `1. Make sure you have a 'courses' table in your database\n` +
+               `2. Add some courses to the table\n` +
+               `3. Run the sample_data.sql file to add test courses\n\n` +
+               `**Required columns:** id (or course_id), course_name (or name/title), price, category, description`,
+      recommendedCourses: [],
+      recommendedMentors: []
     };
-  });
+  }
 
-  const filteredCourses = budget
-    ? scoredCourses.filter((course) => course.priceValue && course.priceValue <= budget)
-    : scoredCourses;
+  // Course recommendations
+  if (intents.includes("course") || intents.includes("recommendation")) {
+    const filtered = filterCourses(courses, queryData);
+    recommendedCourses = filtered.slice(0, 3);
 
-  const rankedCourses = (filteredCourses.length ? filteredCourses : scoredCourses)
-    .sort((a, b) => b.score - a.score || a.priceValue - b.priceValue)
-    .slice(0, 3);
+    if (recommendedCourses.length > 0) {
+      response += "📚 **Course Recommendations:**\n\n";
+      
+      recommendedCourses.forEach((course, idx) => {
+        response += `${idx + 1}. **${course.name}**\n`;
+        if (course.price) response += `   💰 Price: $${course.price}\n`;
+        if (course.category) response += `   📂 Category: ${course.category}\n`;
+        if (course.description) {
+          const shortDesc = course.description.length > 100 
+            ? course.description.substring(0, 100) + "..." 
+            : course.description;
+          response += `   📝 ${shortDesc}\n`;
+        }
+        response += "\n";
+      });
 
-  const topCourseNames = rankedCourses.map((course) => course.title).filter(Boolean);
-  const topCoursesText = topCourseNames.length
-    ? topCourseNames.join(", ")
-    : "Share your goals to see the best match.";
-
-  const bestPriceCourse = rankedCourses
-    .filter((course) => course.priceValue)
-    .sort((a, b) => a.priceValue - b.priceValue)[0];
-
-  const bestPricingText = bestPriceCourse
-    ? `${bestPriceCourse.title} starts at $${bestPriceCourse.priceValue}.`
-    : "Ask about budgets and subscription options.";
-
-  let bestMentorText = rankedCourses[0]?.teacher_name
-    ? `Consider ${rankedCourses[0].teacher_name} for ${rankedCourses[0].title}.`
-    : "We connect you with mentors aligned to goals.";
-    let mentorReply = "";
-
-  if (isMentorQuery(prompt) || queryTags.length) {
-    const rankedMentors = await rankMentors({ queryTags, limit: 3 });
-    if (rankedMentors.length) {
-      const topMentor = rankedMentors[0];
-      const tagText = topMentor.matched_tags?.length
-        ? ` (${topMentor.matched_tags.join(", ")})`
-        : "";
-      bestMentorText = `Top mentor: ${topMentor.name}${tagText}.`;
-      mentorReply = `I recommend ${topMentor.name}${tagText} based on mentor performance and expertise.`;
-    } else {
-      bestMentorText = "We are onboarding more mentors for that specialty.";
+      if (budget) {
+        response += `✅ All recommendations are within your $${budget} budget.\n\n`;
+      }
+    } else if (courses.length > 0) {
+      response += "I couldn't find courses matching your specific criteria. Here are some available courses:\n\n";
+      const topCourses = courses.slice(0, 3);
+      topCourses.forEach((course, idx) => {
+        response += `${idx + 1}. ${course.name} - $${course.price || "TBD"}\n`;
+      });
+      response += "\n";
     }
   }
 
-  const futureScopeText = topCourseNames.length
-    ? `Roles tied to ${topCourseNames[0]} show strong hiring demand this semester.`
-    : "We highlight demand, growth, and career tracks.";
+  // Mentor recommendations
+  if (intents.includes("mentor") && mentors && mentors.length > 0) {
+    const analyzed = analyzeMentors(mentors, queryData);
+    recommendedMentors = analyzed.slice(0, 3);
 
-  const reply = mentorReply
-    ? mentorReply
-    : topCourseNames.length
-      ? `Based on your goals, I recommend ${topCourseNames.join(", ")}.`
-      : "Tell me your interest area, budget, and timeline so I can recommend courses.";
+    response += "👨‍🏫 **Recommended Mentors:**\n\n";
+    
+    recommendedMentors.forEach((mentor, idx) => {
+      response += `${idx + 1}. **${mentor.name || mentor.username}**\n`;
+      if (mentor.specialization) response += `   🎓 Specialization: ${mentor.specialization}\n`;
+      if (mentor.rating && mentor.rating > 0) {
+        response += `   ⭐ Rating: ${mentor.rating}/5.0`;
+        if (mentor.total_reviews) response += ` (${mentor.total_reviews} reviews)`;
+        response += "\n";
+      }
+      if (mentor.hourly_rate && mentor.hourly_rate > 0) response += `   💰 Rate: $${mentor.hourly_rate}/hour\n`;
+      if (mentor.bio) {
+        const shortBio = mentor.bio.length > 80 ? mentor.bio.substring(0, 80) + "..." : mentor.bio;
+        response += `   📝 ${shortBio}\n`;
+      }
+      response += "\n";
+    });
+  } else if (intents.includes("mentor")) {
+    response += "👨‍🏫 **Mentors:**\n\n";
+    response += "⚠️ I couldn't find any mentors in the database.\n\n";
+    response += "To see mentors, make sure you have users with role='teacher' in your database.\n\n";
+  }
+
+  // Add helpful closing
+  if (response && (recommendedCourses.length > 0 || recommendedMentors.length > 0)) {
+    response += "💡 **What else can I help with?**\n";
+    response += "• Specific course details\n";
+    response += "• Different budget ranges\n";
+    response += "• Other subject areas\n";
+  } else if (!response || response.trim() === "") {
+    response = "👋 Hello! I'm here to help you find courses and mentors.\n\n";
+    response += "**Try asking me:**\n";
+    response += "• 'Show me beginner courses'\n";
+    response += "• 'What courses cost under $100?'\n";
+    response += "• 'Find me a programming course'\n";
+    response += "• 'Who are the available mentors?'\n";
+  }
 
   return {
-    reply,
-    topCourses: topCoursesText,
-    futureScope: futureScopeText,
-    bestPricing: bestPricingText,
-    bestMentor: bestMentorText,
+    response,
+    recommendedCourses: recommendedCourses || [],
+    recommendedMentors: recommendedMentors || []
   };
-};
+}
 
-const fetchTeacherMetrics = () => {
-  const sql = `
-    SELECT
-      u.id AS teacher_id,
-      u.name,
-      t.bio,
-      t.expertise_tags,
-      COALESCE(enrollments.enrollment_count, 0) AS enrollment_count,
-      COALESCE(bookings.booking_count, 0) AS booking_count
-    FROM users u
-    JOIN teachers t ON u.id = t.user_id
-    LEFT JOIN (
-      SELECT
-        c.teacher_id,
-        COUNT(DISTINCT e.id) AS enrollment_count
-      FROM courses c
-      LEFT JOIN enrollments e ON e.course_id = c.id AND e.status = 'paid'
-      GROUP BY c.teacher_id
-    ) AS enrollments ON enrollments.teacher_id = u.id
-    LEFT JOIN (
-      SELECT
-        b.teacher_id,
-        COUNT(*) AS booking_count
-      FROM bookings b
-      GROUP BY b.teacher_id
-    ) AS bookings ON bookings.teacher_id = u.id
-    WHERE u.role = 'teacher' AND t.verification_status = 'approved'
-  `;
+/**
+ * Main chatbot insights builder
+ */
+export async function buildChatbotInsights({ prompt }) {
+  try {
+    console.log(`📝 Processing query: "${prompt}"`);
+    
+    // Classify the query
+    const queryData = classifyQuery(prompt);
+    console.log(`🔍 Detected intents:`, queryData.intents);
+    if (queryData.budget) console.log(`💰 Budget constraint: $${queryData.budget}`);
 
-  return new Promise((resolve, reject) => {
-    db.query(sql, (err, results) => {
-      if (err) return reject(err);
-      resolve(results || []);
-    });
-  });
-};
+    // Fetch data
+    const [courses, mentors] = await Promise.all([
+      getAllCourses(),
+      getAllMentors()
+    ]);
 
-export const rankMentors = async ({ queryTags = [], limit = 10 } = {}) => {
-  const teachers = await fetchTeacherMetrics();
-  const normalizedQueryTags = extractTags(queryTags);
-  const queryTagSet = new Set(normalizedQueryTags);
+    console.log(`📊 Data fetched - Courses: ${courses.length}, Mentors: ${mentors.length}`);
 
-  const maxEnrollmentCount = teachers.reduce(
-    (max, teacher) => Math.max(max, Number(teacher.enrollment_count) || 0),
-    0
-  );
-  const maxBookingCount = teachers.reduce(
-    (max, teacher) => Math.max(max, Number(teacher.booking_count) || 0),
-    0
-  );
-
-  const scoredMentors = teachers.map((teacher) => {
-    const teacherTags = extractTags(teacher.expertise_tags);
-    const matchedTags = teacherTags.filter((tag) => queryTagSet.has(tag));
-    const skillScore = queryTagSet.size
-      ? matchedTags.length / queryTagSet.size
-      : 0;
-
-    const enrollmentScore = maxEnrollmentCount
-      ? (Number(teacher.enrollment_count) || 0) / maxEnrollmentCount
-      : 0;
-    const bookingScore = maxBookingCount
-      ? (Number(teacher.booking_count) || 0) / maxBookingCount
-      : 0;
-    const qualityScore = (enrollmentScore + bookingScore) / 2;
-
-    const overallScore = skillScore * 0.7 + qualityScore * 0.3;
+    // Generate intelligent response
+    const analysis = generateResponse(queryData, courses, mentors);
 
     return {
-      ...teacher,
-      matched_tags: matchedTags,
-      skill_score: Number(skillScore.toFixed(3)),
-      quality_score: Number(qualityScore.toFixed(3)),
-      overall_score: Number(overallScore.toFixed(3)),
+      answer: analysis.response,
+      topCourses: analysis.recommendedCourses || [],
+      topMentors: analysis.recommendedMentors || [],
+      futureScope: "Explore our courses to advance your career!",
+      bestPricing: analysis.recommendedCourses && analysis.recommendedCourses.length > 0 
+        ? `Best value: ${analysis.recommendedCourses[0]?.name} at $${analysis.recommendedCourses[0]?.price || "TBD"}`
+        : "Ask about specific budget ranges!",
+      bestMentor: analysis.recommendedMentors && analysis.recommendedMentors.length > 0
+        ? analysis.recommendedMentors[0]?.name || "Available mentors ready to help!"
+        : "Contact us to learn about our mentors!"
     };
-  });
+  } catch (error) {
+    console.error("❌ Error in buildChatbotInsights:", error);
+    return {
+      answer: `I'm sorry, I encountered an error: ${error.message}\n\nPlease check:\n1. Database connection is working\n2. Tables exist (courses, users)\n3. Tables have data\n\nRun discover-tables.js to see your table structure.`,
+      topCourses: [],
+      topMentors: [],
+      futureScope: "Unable to fetch data.",
+      bestPricing: "Unable to fetch pricing.",
+      bestMentor: "Unable to fetch mentors."
+    };
+  }
+}
 
-  return scoredMentors
-    .sort((a, b) => b.overall_score - a.overall_score)
-    .slice(0, limit);
-};
+/**
+ * Rank mentors by tags and expertise
+ */
+export async function rankMentors({ queryTags = [], limit = 10 }) {
+  try {
+    const mentors = await getAllMentors();
+    
+    if (!mentors || mentors.length === 0) {
+      return [];
+    }
+    
+    // Score mentors based on tags and performance
+    const scored = mentors.map(mentor => {
+      let score = 0;
+      
+      // Rating weight
+      score += (mentor.rating || 0) * 20;
+      
+      // Review count weight
+      score += Math.min((mentor.total_reviews || 0) * 2, 50);
+      
+      // Tag matching
+      if (queryTags.length > 0 && mentor.specialization) {
+        const spec = mentor.specialization.toLowerCase();
+        queryTags.forEach(tag => {
+          if (spec.includes(tag.toLowerCase())) {
+            score += 30;
+          }
+        });
+      }
+      
+      return { ...mentor, matchScore: score };
+    });
+    
+    // Sort by score and return top results
+    scored.sort((a, b) => b.matchScore - a.matchScore);
+    return scored.slice(0, limit);
+  } catch (error) {
+    console.error("Error in rankMentors:", error);
+    return [];
+  }
+}

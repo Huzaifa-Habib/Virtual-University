@@ -3,67 +3,434 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Chatbot | Virtual University</title>
+  <title>AI Student Assistant | Virtual University</title>
   <link rel="stylesheet" href="../assets/css/main.css">
+  <style>
+    /* Inline critical chatbot styles */
+    .chatbot-body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .chatbot-shell {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .chatbot-header {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .chatbot-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .chatbot-subtitle {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .role-pill {
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .chatbot-grid {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 20px;
+    }
+
+    .chatbot-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .chatbot-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .chatbot-section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .status-panel {
+      background: #48bb78;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-panel::before {
+      content: "●";
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .chatbot-chat-history {
+      flex: 1;
+      min-height: 400px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f7fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chatbot-chat-history::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chatbot-chat-history::-webkit-scrollbar-track {
+      background: #edf2f7;
+      border-radius: 4px;
+    }
+
+    .chatbot-chat-history::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 4px;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .message-content {
+      flex: 1;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      line-height: 1.6;
+      color: #2d3748;
+      font-size: 14px;
+    }
+
+    .user-message .message-content {
+      background: #667eea;
+      color: white;
+    }
+
+    .loading-message .message-content {
+      background: #fef5e7;
+      color: #d69e2e;
+      font-style: italic;
+    }
+
+    .chatbot-quick-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quick-prompt-btn {
+      background: #edf2f7;
+      border: 1px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .quick-prompt-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .chatbot-input-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .chatbot-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      resize: none;
+      min-height: 50px;
+      max-height: 120px;
+      overflow-y: auto;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+
+    .chatbot-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .chatbot-input::placeholder {
+      color: #a0aec0;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      height: 50px;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .insight-card {
+      background: #f7fafc;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .insight-card:hover {
+      background: #edf2f7;
+      transform: translateX(4px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .insight-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .insight-title::before {
+      content: "●";
+      color: #667eea;
+      font-size: 12px;
+    }
+
+    .insight-body {
+      font-size: 13px;
+      color: #4a5568;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .chatbot-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chatbot-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .chatbot-body {
+        padding: 12px;
+      }
+
+      .chatbot-title {
+        font-size: 22px;
+      }
+
+      .chatbot-card {
+        padding: 16px;
+      }
+
+      .chatbot-input-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn-primary {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body class="chatbot-body">
   <div class="chatbot-shell">
     <header class="chatbot-header">
       <div>
-        <div class="chatbot-title">Student Success Chatbot</div>
-        <div class="chatbot-subtitle">Ask for course guidance, pricing, and mentor recommendations.</div>
+        <div class="chatbot-title">🤖 AI Student Assistant</div>
+        <div class="chatbot-subtitle">Get personalized course recommendations, mentor guidance, and career insights.</div>
       </div>
-      <div class="badge" style="position: static;">
-        <span>Access:</span>
-        <span class="role-pill">Students</span>
+      <div class="badge">
+        <span>Access Level:</span>
+        <span class="role-pill">Student</span>
       </div>
     </header>
 
     <main class="chatbot-grid">
+      <!-- Chat Panel -->
       <section class="chatbot-card">
         <div class="chatbot-card-header">
           <div>
-            <div class="chatbot-section-title">Chat Panel</div>
-            <div class="chatbot-subtitle">Quickly refine your learning path.</div>
+            <div class="chatbot-section-title">💬 Chat with AI Assistant</div>
+            <div class="chatbot-subtitle">Ask anything about courses, mentors, pricing, and careers</div>
           </div>
-          <span class="status-panel" style="position: static;">Live Advisor</span>
+          <span class="status-panel">AI Online</span>
         </div>
 
-    <div id="chatHistory" class="chatbot-chat-history"></div>
+        <!-- Chat History -->
+        <div id="chatHistory" class="chatbot-chat-history"></div>
+
+        <!-- Quick Prompts -->
         <div>
-          <div class="chatbot-subtitle" style="margin-bottom: 8px;">Quick prompts</div>
+          <div class="chatbot-subtitle" style="margin-bottom: 8px; font-weight: 600;">✨ Try asking:</div>
           <div id="quickPrompts" class="chatbot-quick-prompts"></div>
         </div>
 
+        <!-- Chat Input Form -->
         <form id="chatForm" class="chatbot-input-row">
-          <input id="chatInput" class="chatbot-input" type="text" placeholder="Ask about career-focused courses, pricing, mentors...">
-          <button type="submit" class="btn-primary">Send</button>
+          <textarea 
+            id="chatInput" 
+            class="chatbot-input" 
+            rows="1"
+            placeholder="Ask me about courses, mentors, pricing, career paths..."
+            autocomplete="off"
+          ></textarea>
+          <button type="submit" style="width: 150px !important;">Send 📤</button>
         </form>
       </section>
 
+      <!-- Insights Panel -->
       <section class="chatbot-card">
         <div>
-          <div class="chatbot-section-title">Response Insights</div>
-          <div class="chatbot-subtitle">Curated highlights based on your questions.</div>
+          <div class="chatbot-section-title">📊 Smart Insights</div>
+          <div class="chatbot-subtitle">Personalized recommendations based on your queries</div>
         </div>
 
         <div class="insight-grid">
           <div class="insight-card">
-            <div class="insight-title">Top Courses</div>
-            <p id="topCourses" class="insight-body">Share your goals to see the best match.</p>
+            <div class="insight-title">📚 Recommended Courses</div>
+            <p id="topCourses" class="insight-body">Ask about your interests and I'll recommend the perfect courses for you!</p>
           </div>
+
           <div class="insight-card">
-            <div class="insight-title">Future Scope</div>
-            <p id="futureScope" class="insight-body">We highlight demand, growth, and career tracks.</p>
+            <div class="insight-title">🚀 Career Outlook</div>
+            <p id="futureScope" class="insight-body">I'll show you market demand, salary ranges, and growth potential.</p>
           </div>
+
           <div class="insight-card">
-            <div class="insight-title">Best Pricing</div>
-            <p id="bestPricing" class="insight-body">Ask about budgets and subscription options.</p>
+            <div class="insight-title">💰 Budget Options</div>
+            <p id="bestPricing" class="insight-body">Tell me your budget and I'll find courses that fit your financial goals.</p>
           </div>
+
           <div class="insight-card">
-            <div class="insight-title">Best Mentor</div>
-            <p id="bestMentor" class="insight-body">We connect you with mentors aligned to goals.</p>
+            <div class="insight-title">👨‍🏫 Top Mentors</div>
+            <p id="bestMentor" class="insight-body">I'll match you with highly-rated mentors based on your learning needs.</p>
           </div>
+        </div>
+
+        <!-- Help Section -->
+        <div style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+          <div style="font-size: 13px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">💡 Pro Tips</div>
+          <ul style="font-size: 12px; color: #475569; margin: 0; padding-left: 20px; line-height: 1.8;">
+            <li>Be specific about your goals and budget</li>
+            <li>Ask about career outlooks for better guidance</li>
+            <li>Request mentor comparisons by expertise</li>
+            <li>Inquire about course prerequisites</li>
+          </ul>
         </div>
       </section>
     </main>
