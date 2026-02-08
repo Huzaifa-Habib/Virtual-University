@@ -43,14 +43,7 @@ function escapeHtml(str) {
 
 function renderMessage(container, message, isUser) {
   const bubble = document.createElement("div");
-  bubble.style.alignSelf = isUser ? "flex-end" : "flex-start";
-  bubble.style.maxWidth = "75%";
-  bubble.style.background = isUser ? "linear-gradient(135deg, var(--accent1), var(--accent2))" : "var(--glass-2)";
-  bubble.style.color = isUser ? "#021218" : "#e6eef8";
-  bubble.style.padding = "12px 16px";
-  bubble.style.borderRadius = "16px";
-  bubble.style.boxShadow = "0 6px 18px rgba(0,0,0,0.25)";
-  bubble.style.fontSize = "0.95rem";
+  bubble.className = `chatbot-bubble ${isUser ? "user" : "bot"}`;
   bubble.innerHTML = escapeHtml(message);
   container.appendChild(bubble);
   container.scrollTop = container.scrollHeight;
