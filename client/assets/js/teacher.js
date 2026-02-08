@@ -365,6 +365,11 @@ const render = {
             Copy Link
           </button>
           <button 
+            onclick="handleShareLink(${id})"
+            class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+            Share Link
+          </button>
+          <button 
             onclick="handleStartSession(${id})"
             class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg text-sm font-semibold hover:opacity-90 transition">
             Start Session
@@ -444,6 +449,11 @@ const render = {
               onclick="handleCopyLink(${id})"
               class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
               Copy Link
+            </button>
+            <button 
+              onclick="handleShareLink(${id})"
+              class="px-4 py-2 bg-white/10 border border-white/10 rounded-lg text-sm hover:bg-white/20 transition">
+              Share Link
             </button>
           ` : ''}
           <button 
@@ -609,6 +619,23 @@ const handlers = {
     }
   },
 
+  // Share session link with student (create room if needed)
+  shareLink: async (bookingId) => {
+    const booking = state.bookings.find(item => item.id === bookingId);
+    if (!booking?.roomId) {
+      await api.createVideoRoom(bookingId);
+      await handlers.loadBookings();
+    }
+
+    const url = `${window.location.origin}/views/video.html?bookingId=${bookingId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      utils.toast('Session link shared. Student can join now!');
+    } catch (error) {
+      utils.handleError(error, 'Share link');
+    }
+  },
+
   // View details handler
   viewDetails: (bookingId) => {
     window.location.href = `${window.location.origin}/views/booking.html?id=${bookingId}`;
@@ -766,6 +793,7 @@ window.handleAcceptBooking = handlers.acceptBooking;
 window.handleStartSession = handlers.startSession;
 window.handleViewDetails = handlers.viewDetails;
 window.handleCopyLink = handlers.copyLink;
+window.handleShareLink = handlers.shareLink;
 /* ==================== START APPLICATION ==================== */
 // Wait for DOM to be fully loaded
 if (document.readyState === 'loading') {

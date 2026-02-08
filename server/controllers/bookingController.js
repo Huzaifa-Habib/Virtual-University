@@ -86,7 +86,8 @@ export const getTeacherBookings = (req, res) => {
       courseTitle: b.course_title,
       date: b.date,
       time: b.time,
-      status: b.status
+      status: b.status,
+      roomId: b.room_id
     }));
 
     res.json(formatted);
@@ -105,7 +106,8 @@ export const getStudentBookings = (req, res) => {
       courseTitle: b.course_title,
       date: b.date,
       time: b.time,
-      status: b.status
+      status: b.status,
+      roomId: b.room_id
     }));
 
     res.json(formatted);
