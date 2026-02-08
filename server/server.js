@@ -5,6 +5,7 @@ import http from "http";
 
 import { db } from "./config/db.js";
 import { createUserTable } from "./models/User.js";
+import { createCourseInsightsTable } from "./models/CourseInsights.js";
 import { initSocketServer } from "./socketServer.js";
 import { protect } from "./middlewares/authMiddleware.js";
 
@@ -47,6 +48,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Initialize tables
 createUserTable(db);
+createCourseInsightsTable(db);
 
 // Routes
 app.use("/api/auth", authRoutes);
