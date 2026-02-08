@@ -20,7 +20,7 @@ import enrollmentRoutes from './routes/enrollmentRoutes.js';
 import teacherMaterialsRoutes from "./routes/teacherMaterialsRoutes.js";
 import studentMaterialsRoutes from "./routes/studentMaterialsRoutes.js";
 import userRoutes from './routes/userRoutes.js';
-
+import chatbotRoutes from "./routes/chatbotRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -63,7 +63,7 @@ app.use("/api", teacherMaterialsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/materials', teacherMaterialsRoutes);
 app.use('/api/materials', studentMaterialsRoutes);
-
+app.use("/api/chatbot", chatbotRoutes);
 
 
 // Default route

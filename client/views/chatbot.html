@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Chatbot | Virtual University</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="video-container" style="gap: 16px;">
+    <header class="session-header">
+      <div>
+        <div class="session-title">Student Success Chatbot</div>
+        <div class="session-meta">Ask for course guidance, pricing, and mentor recommendations.</div>
+      </div>
+      <div class="badge" style="position: static;">
+        <span>Access:</span>
+        <span class="role-pill">Students</span>
+      </div>
+    </header>
+
+    <main class="video-stage" style="align-items: stretch;">
+      <section class="video-card" style="align-items: stretch; justify-content: flex-start; padding: 18px; gap: 14px; height: calc(70vh + 20px);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div>
+            <div class="session-title" style="font-size: 1.05rem;">Chat Panel</div>
+            <div class="session-meta">Quickly refine your learning path.</div>
+          </div>
+          <span class="status-panel" style="position: static;">Live Advisor</span>
+        </div>
+
+        <div id="chatHistory" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px;"></div>
+
+        <div>
+          <div class="session-meta" style="margin-bottom: 8px;">Quick prompts</div>
+          <div id="quickPrompts" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+        </div>
+
+        <form id="chatForm" style="display: flex; gap: 10px; align-items: center;">
+          <input id="chatInput" type="text" placeholder="Ask about career-focused courses, pricing, mentors..."
+            style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 12px 16px; color: #fff; font-size: 0.95rem;">
+          <button type="submit" class="btn-primary">Send</button>
+        </form>
+      </section>
+
+      <section class="video-card" style="align-items: stretch; justify-content: flex-start; padding: 18px; gap: 16px; height: calc(70vh + 20px);">
+        <div>
+          <div class="session-title" style="font-size: 1.05rem;">Response Insights</div>
+          <div class="session-meta">Curated highlights based on your questions.</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <div style="background: var(--glass); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="session-title" style="font-size: 0.95rem;">Top Courses</div>
+            <p id="topCourses" class="session-meta" style="margin-top: 8px;">Share your goals to see the best match.</p>
+          </div>
+          <div style="background: var(--glass); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="session-title" style="font-size: 0.95rem;">Future Scope</div>
+            <p id="futureScope" class="session-meta" style="margin-top: 8px;">We highlight demand, growth, and career tracks.</p>
+          </div>
+          <div style="background: var(--glass); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="session-title" style="font-size: 0.95rem;">Best Pricing</div>
+            <p id="bestPricing" class="session-meta" style="margin-top: 8px;">Ask about budgets and subscription options.</p>
+          </div>
+          <div style="background: var(--glass); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="session-title" style="font-size: 0.95rem;">Best Mentor</div>
+            <p id="bestMentor" class="session-meta" style="margin-top: 8px;">We connect you with mentors aligned to goals.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../assets/js/chatbot.js"></script>
+</body>
+</html>
